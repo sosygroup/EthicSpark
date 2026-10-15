@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import App from "./App";
+import LegacyWorkflow from "./LegacyWorkflow";
 import "./style.css";
 const theme = createTheme({
   palette: {
@@ -50,7 +51,7 @@ createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <App />
+      {new URLSearchParams(window.location.search).has("legacy") ? <LegacyWorkflow /> : <App />}
     </ThemeProvider>
   </React.StrictMode>,
 );

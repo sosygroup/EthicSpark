@@ -38,3 +38,10 @@ Stop with `docker compose stop`. Avoid deleting the database volume when preserv
 Flyway V3 stores uploaded bytes, extracted text and reasoning runs in PostgreSQL. The normal database backup includes them; treat backups and plan exports as project data. Removing an attachment from a new profile does not delete its historical bytes. Confirmed profiles and approved plans remain immutable.
 
 See [assisted workflow](ASSISTED_WORKFLOW.md) for provider configuration. Change API keys only in the local ignored `.env`, then recreate the application with `./scripts/run.sh`. Avoid `docker compose config` in shared logs because it expands secrets. Do not expose this unauthenticated local workspace as a public multi-user service.
+
+
+## Conversational desktop operation
+
+Use `./scripts/desktop.sh` for the native window and local file agent, or `./scripts/run.sh` for browser-only chat. Flyway V4 adds conversation and operation-receipt tables. Backups include chats, generated artefacts and stored command output. Linked project files remain in the developer's own folder and are not part of the database backup. Folder-link configuration is local to the Electron user-data directory; it is not distributed in Git.
+
+An interrupted pending model request can be marked stopped from the conversation. Provider execution may still complete remotely; late results cannot overwrite cancellation. Native commands have a bounded lifetime and are stopped on app exit. Closing the app does not stop Docker services; use `docker compose stop` when needed. See [conversational workspace](CONVERSATIONAL_WORKSPACE.md) for trust boundaries and limits.

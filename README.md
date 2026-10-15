@@ -1,34 +1,34 @@
 # Ethics-Aware Software Engineering Catalogue
 
-EthicSpark is a developer-facing ethics catalogue tool. The English React/Material UI workspace supports application profiles with file attachments, manual or LLM-assisted selection across all 24 clusters, adaptation and human review of six actions per cluster, immutable plan approval and HTML/JSON export. Projects, attachments and decision history persist in PostgreSQL. OpenAI, Anthropic Claude and local Ollama are supported.
+EthicSpark is a standalone conversational workspace for software development, with an ethics-aware catalogue in context. Start from a prompt, documents or a live local project folder. The assistant helps with general engineering tasks and introduces ethical considerations when relevant; no profile questionnaire or upfront cluster choices are required.
 
-The catalogue contains **24 clusters, 144 actions and 184 references**. The canonical action categories are **Know, Protect, Inform, Assess, Validate and Respond**. Lifecycle phases use consistent names: Requirements for requirements work and Operations for running deployed software.
+Responses support Markdown, code, tables, Mermaid diagrams and downloadable text documents. The desktop app can read current project files, propose changes and run commands/tests **only after the developer reviews and approves each operation**. Conversations and operation results persist in PostgreSQL.
 
-![Manual C-01 project plan](docs/screenshots/manual-plan-desktop.jpg)
+The catalogue contains **24 clusters, 144 actions and 184 references**, using Know, Protect, Inform, Assess, Validate and Respond. The updated author workbook is included as a separately versioned public dataset, with research observations omitted. See [data provenance](docs/DATA_PROVENANCE.md).
 
-## Run with one command
+## Start the desktop app
 
-Prerequisites: Docker Desktop (or Docker Engine with Compose v2), a running Docker daemon and OpenSSL for first-run local credential generation. Java and Maven installations on the host are not required.
+Prerequisites: Docker Desktop (or Docker Engine with Compose v2), curl, and a graphical macOS/Linux session. The launcher downloads and verifies its pinned local Node runtime and installs the locked Electron dependency; no global Node/JDK/Maven setup is required to run the application.
 
-The public catalogue dataset is included as `data/catalogue-public.xlsx`. Expert interview notes are omitted; see [data provenance](docs/DATA_PROVENANCE.md). Run from this directory:
+```sh
+./scripts/desktop.sh
+```
+
+Open **Model settings** to choose OpenAI, Anthropic Claude or Ollama. Configure cloud API keys only in your ignored local `.env`, or start Ollama and install a model. Authorise the selected provider to process the current project's shared context. Model choice is remembered. You can then start with a single prompt; a folder and attachments are optional.
+
+See [conversational workspace](docs/CONVERSATIONAL_WORKSPACE.md) for the complete journey, folder freshness, action previews, permissions and limitations. This is a source-distributed desktop MVP, not a signed self-contained installer. Host project commands still need the project's usual tools installed.
+
+## Browser workspace
 
 ```sh
 ./scripts/run.sh
 ```
 
-The script creates a private `.env` with a random local database password when missing, builds using Java 25 and starts the application and PostgreSQL. It waits for readiness, including completion of the catalogue import and database connectivity.
+Open [localhost:8082](http://localhost:8082). Browser use supports chat, uploads and downloads. Direct live-folder access and native action execution are available in the desktop app. The local backend and database run in Docker; PostgreSQL is not exposed by the normal Compose deployment.
 
-Open [the workspace](http://localhost:8082). Choose **Start with an example**, supply your local reviewer name and follow the four screens. You do not need to compose API URLs or enter catalogue version IDs. See [the manual walkthrough](docs/MANUAL_WORKFLOW.md). For uploads and optional model analysis, follow [assisted workflow and provider setup](docs/ASSISTED_WORKFLOW.md).
+The script generates local database credentials in an ignored `.env` on first use. Existing data survives restarts. `docker compose stop` stops backend services without deleting the database.
 
-The [versions API](http://localhost:8082/api/catalogue/versions) remains available for technical inspection. Port 8082 avoids the existing local services on 8080/8081; override `APP_PORT` in `.env` if needed. The database has no host port in the normal Compose deployment. The application binds to localhost on the host.
-
-```sh
-docker compose logs application
-docker compose stop
-docker compose start
-```
-
-Database data and the import report survive restarts in named volumes. Stopping the stack does not erase them. Imports are idempotent for the same workbook digest and importer version. A changed source file creates a new immutable version; existing versions remain queryable.
+The previous structured workflow remains at [localhost:8082/?legacy=1](http://localhost:8082/?legacy=1) for existing projects and approved plans. Historical data is retained.
 
 ## Inspect the catalogue
 
@@ -51,7 +51,7 @@ Read the version `id` from `GET /api/catalogue/versions`, then substitute it for
 
 Missing versions or entities return HTTP 404. Invalid category parameters return HTTP 400 with an English problem detail. Catalogue APIs remain read-only; the project workflow uses the separate write endpoints described below. Import and catalogue publication have no HTTP write endpoints.
 
-## Manual project workflow API
+## Earlier structured workflow API
 
 | Endpoint | Purpose |
 | --- | --- |
@@ -122,16 +122,17 @@ Supply the password from your local `.env` without committing it. Host defaults 
 ```text
 catalogue-core/       Catalogue model, XLSX importer and validation tests
 catalogue-service/    Spring Boot, Flyway, catalogue and project workflow APIs
-catalogue-web/        React, TypeScript, Material UI and Vite workspace
+catalogue-web/        Conversational React/TypeScript workspace and legacy UI
+desktop/              Electron window and permission-controlled native project agent
 scripts/             One-command run and isolated test commands
 docs/                MVP specification, architecture and operational notes
 data/                Public catalogue dataset
 MY-INPUT/            Local research inputs, excluded from Git and Docker
 ```
 
-See [MVP specification](docs/MVP_SPECIFICATION.md), [architecture](docs/ARCHITECTURE.md), [validation results](docs/VALIDATION.md), [manual walkthrough](docs/MANUAL_WORKFLOW.md) and [backup and restore](docs/OPERATIONS.md). See [assisted workflow and provider setup](docs/ASSISTED_WORKFLOW.md) for profile uploads, model selection, phase suitability and review.
+See [MVP specification](docs/MVP_SPECIFICATION.md), [architecture](docs/ARCHITECTURE.md), [validation results](docs/VALIDATION.md), [manual walkthrough](docs/MANUAL_WORKFLOW.md) and [backup and restore](docs/OPERATIONS.md). See [conversational workspace](docs/CONVERSATIONAL_WORKSPACE.md) for the primary journey and [the earlier assisted workflow](docs/ASSISTED_WORKFLOW.md) for historical form-based projects.
 
-This is a local research prototype. Reviewer names are self-reported audit labels, not authenticated identities; all local projects are accessible to the local operator. Shared expert deployment, authentication, project permissions and catalogue publication review remain later increments. Cloud inference requires operator-configured API credentials and explicit per-run authorisation. Paper and handoff drafts, credentials, build products and temporary extraction files are excluded from Git.
+This is a local research prototype. Native commands run with user permissions, not inside an OS sandbox. Reviewer names are self-reported audit labels, not authenticated identities; all local projects are accessible to the local operator. Shared expert deployment, authentication, project permissions and catalogue publication review remain later increments. Cloud inference requires operator-configured API credentials and explicit per-run authorisation. Paper and handoff drafts, credentials, build products and temporary extraction files are excluded from Git.
 
 ## Coauthor collaboration and replication package
 

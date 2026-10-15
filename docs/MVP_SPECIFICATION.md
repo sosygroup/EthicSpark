@@ -1,6 +1,8 @@
 # Ethics catalogue tool MVP specification
 
-Version 0.2 — 15 October 2026
+**Product direction update, 15 October 2026:** the owner replaced the required form/cluster-first journey with a general conversational development assistant. Prompts and optional live folders/documents are the entry point. Ethics guidance is introduced when pertinent. Host file edits and commands require per-operation developer approval. [Conversational workspace](CONVERSATIONAL_WORKSPACE.md) describes the shipped scope and supersedes earlier primary-UI requirements below. The original structured workflow remains available for historical data.
+
+Version 0.3 — 15 October 2026
 
 Implementation update: profile attachments, Company Ethics, Additional Material, sharing None, all-cluster adaptation and three LLM providers are now implemented. See [assisted workflow](ASSISTED_WORKFLOW.md) for the actual shipped limits and review flow. Requirements below that concern authenticated shared deployment, implementation-evidence validation, generation idempotency, partial recovery and automatic retries remain release targets, not claims about this local increment.
 

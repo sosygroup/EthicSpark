@@ -1,6 +1,6 @@
 # Replication package preparation
 
-This repository is the working software artefact for the draft paper **Bridging Concept and Practice: A Developer-Facing Catalogue for Ethics-Aware Software Engineering**. This is a public software development baseline, not a complete replication package or an evaluated tool release.
+This repository is the working software artefact for the draft paper **Bridging Concept and Practice: A Developer-Facing Catalogue for Ethics-Aware Software Engineering**. This is a public software development baseline, not a complete replication package or an evaluated tool release. The primary UI is now a conversational desktop workspace; the earlier structured workflow is retained for historical projects. See [conversational workspace](CONVERSATIONAL_WORKSPACE.md).
 
 ## Included artefacts
 
@@ -25,15 +25,15 @@ Paper drafts, the developer handoff DOCX, local credentials, database volumes, d
 2. Start Docker Desktop or Docker Engine with Compose v2. Shell instructions use a POSIX shell; Windows users can run them in WSL2 with Docker integration.
 3. Run `./scripts/run.sh`. The first build downloads pinned Java/Node images and package dependencies, generates local database credentials and imports the workbook.
 4. Open http://localhost:8082. Choose Start with an example and supply a reviewer name. No existing project database or browser storage is required.
-5. Follow `docs/MANUAL_WORKFLOW.md`. Manual adaptation is available for all 24 clusters. No model credentials are needed for manual work. Optional assisted analysis uses [provider setup](ASSISTED_WORKFLOW.md).
-6. Run `./scripts/test.sh` to build and validate against an isolated PostgreSQL instance. It does not use the normal application database. The suite contains 12 importer tests, four foundation/manual integration tests and five assisted-workflow integration tests. Provider tests use a local HTTP stub.
+5. For the current primary UI follow `docs/CONVERSATIONAL_WORKSPACE.md` and launch `./scripts/desktop.sh`. A real model connection is needed for conversational responses. The legacy manual workflow remains at `/?legacy=1` and needs no model credentials. Source-distributed desktop dependencies are documented; native actions require a local graphical session.
+6. Run `./scripts/test.sh` to build and validate against an isolated PostgreSQL instance. It does not use the normal application database. The Java suite contains 13 importer tests and 15 integration cases, including six conversational cases. Seven separate native-agent tests exercise permission decisions, real temporary file changes and child processes. Provider tests use local HTTP stubs, not live inference.
 7. Save the Git commit SHA, test log and exports with any reported observations. `git rev-parse HEAD` identifies the source baseline.
 
 The first build requires network access to container and package registries. Subsequent use depends on local caches. Java/Node/Maven versions, application dependencies and container image digests are specified in the repository. Timestamps, project/plan UUIDs and reviewer labels vary between runs; compare source content, state transitions, included entries and disclosed gaps rather than byte-identical whole exports.
 
-Expected import result: 24 clusters, 144 actions, R-001 through R-184, zero blocking errors and 204 recorded source-review warnings for SHA-256 `3d97e021baf84d0580befccfdd49c696398c04ac75b0a380a35b176989cab757`. See the import report for warning details; valid IDs do not prove substantive bibliographic support.
+Expected import result: 24 clusters, 144 actions, R-001 through R-184, zero blocking errors and 179 recorded source-review warnings for SHA-256 `e51a3127bf1e667f5a9257b91cd5130adeaa0b2ea9915f677b685b22988a396f` under importer version 2. See the import report for warning details; valid IDs do not prove substantive bibliographic support.
 
-Expected workflow result: an explicitly confirmed profile, manual or reviewed assisted selection, separately recorded review decisions, an approved snapshot containing accepted entries only and matching HTML/JSON exports. Implementation remains Not started. Changing the profile reopens review without modifying previous approvals.
+Expected conversational result: a persisted conversation from a free prompt, relevant catalogue citations where warranted, optional requested file context, generated text documents and separate proposed operations. Native changes/commands occur only after concrete preview and approval. The previous structured workflow still preserves confirmed profiles, review decisions and immutable approved plans; those historical records are not converted into model evaluations.
 
 ## Relationship to the paper
 

@@ -1,197 +1,216 @@
-import { useEffect, useState } from "react";
-import ProfileFields from "./ProfileFields";
-import ReasoningPanel from "./ReasoningPanel";
+import { useEffect, useRef, useState, isValidElement } from "react";
+import type { ReactElement } from "react";
 import {
   Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Box,
   Button,
-  Checkbox,
-  Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
-  FormControlLabel,
-  LinearProgress,
   MenuItem,
-  Paper,
   Snackbar,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
-  Typography,
 } from "@mui/material";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type {
+  Artifact,
+  Attachment,
+  Citation,
+  FileContext,
+  Message,
+  Operation,
+  Preview,
   Project,
+  Provider,
+  Receipt,
   Summary,
-  Field,
-  Recommendation,
-  Cluster,
-  ClusterSummary,
-  Plan,
-  Event,
-} from "./types";
+  Thread,
+  Workspace,
+} from "./assistant-types";
+import "./assistant.css";
+import Diagram from "./Diagram";
 
-const steps = [
-  "Application profile",
-  "Cluster selection",
-  "Adaptation workspace",
-  "Project plan",
-];
-const reviewLabels: Record<string, string> = {
-  proposed: "Proposed",
-  accepted: "Accepted",
-  edited: "Accepted with edits",
-  rejected: "Rejected",
-  awaiting_information: "Awaiting information",
-};
-const example: Field[] = [
-  {
-    id: "purpose",
-    status: "known",
-    value:
-      "A support-ticket portal lets customers submit requests and lets support agents read and answer them.",
-  },
-  {
-    id: "stakeholders",
-    status: "known",
-    value:
-      "Customers submitting tickets, support agents handling requests, and people mentioned in ticket text.",
-  },
-  {
-    id: "data",
-    status: "known",
-    value: "Customer name, email address and free-text support requests.",
-  },
-  {
-    id: "behaviour",
-    status: "known",
-    value:
-      "Support agents make decisions and send replies. The portal does not make autonomous decisions.",
-  },
-  { id: "phase", status: "known", value: "Requirements" },
-  { id: "retention", status: "unknown", value: "" },
-  { id: "sharing", status: "unknown", value: "" },
-  { id: "safeguards", status: "unknown", value: "" },
-];
+const native = window.ethicsparkDesktop;
 async function api<T>(
   path: string,
-  method = "GET",
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch(path, {
-    method,
+    method: body ? "POST" : "GET",
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
+    signal,
   });
   const data = await response.json();
-  if(data?.profile?.fields && !data.profile.fields.some((f: Field)=>f.id==="additional")) data.profile.fields.push({id:"additional",value:"",status:"known",files:[],companyEthics:[]});
-  if (!response.ok)
-    throw new Error(data.detail || "The request failed. Please try again.");
+  if (!response.ok) throw Error(data.detail || "The request failed.");
   return data;
 }
-function Status({ value }: { value: string }) {
+function Icon({ name, size = 18 }: { name: string; size?: number }) {
+  const paths: Record<string, string> = {
+    plus: "M12 5v14M5 12h14",
+    folder: "M3 7V5h6l2 2h10v12H3Z",
+    chat: "M4 4h16v12H9l-5 4Z",
+    attach: "m8 13 7-7a3 3 0 0 1 4 4L9 20a5 5 0 0 1-7-7L13 2",
+    send: "M12 19V5m-6 6 6-6 6 6",
+    gear: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M4 12H2m20 0h-2M12 4V2m0 20v-2M6 6 4 4m16 16-2-2M6 18l-2 2M20 4l-2 2",
+    files: "M6 3h8l4 4v14H6Zm8 0v5h4",
+    close: "m6 6 12 12M6 18 18 6",
+    check: "m5 12 4 4L19 6",
+    download: "M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4",
+    menu: "M4 6h16M4 12h16M4 18h16",
+    refresh:
+      "M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-2l2 7M4 12l2 7a7 7 0 0 0 12-2",
+    code: "m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18",
+    stop: "M6 6h12v12H6Z",
+    shield: "M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7Z",
+    arrow: "m9 5 7 7-7 7",
+  };
   return (
-    <Chip
-      size="small"
-      className={"status-" + value}
-      label={reviewLabels[value] || value}
-    />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.65"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={paths[name] || paths.chat} />
+    </svg>
   );
 }
-
+function download(artifact: Artifact) {
+  const url = URL.createObjectURL(
+    new Blob([artifact.content], { type: artifact.mediaType || "text/plain" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = artifact.name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function RichText({ text }: { text: string }) {
+  return (
+    <div className="chat-markdown">
+      <Markdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ children, href }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {children}
+            </a>
+          ),
+          pre: ({ children }) =>
+            isValidElement(children) &&
+            (children as ReactElement<{ className?: string }>).props
+              .className === "language-mermaid" ? (
+              <Diagram
+                code={String(
+                  (children as ReactElement<{ children?: unknown }>).props
+                    .children || "",
+                )}
+              />
+            ) : (
+              <div className="code-block">
+                <pre>{children}</pre>
+              </div>
+            ),
+          code: ({ children, className }) => (
+            <code className={className}>{children}</code>
+          ),
+        }}
+      >
+        {text}
+      </Markdown>
+    </div>
+  );
+}
 export default function App() {
-  const [summaries, setSummaries] = useState<Summary[]>([]),
-    [project, setProject] = useState<Project | null>(null),
-    [versions, setVersions] = useState<{ id: string; importedAt: string }[]>(
-      [],
+  const [projects, setProjects] = useState<Project[]>([]),
+    [threads, setThreads] = useState<Summary[]>([]),
+    [thread, setThread] = useState<Thread | null>(null),
+    [projectId, setProjectId] = useState(
+      localStorage.getItem("ethicspark-project") || "",
     );
-  const [stage, setStage] = useState(0),
-    [fields, setFields] = useState<Field[]>([]),
-    [selection, setSelection] = useState<string[]>([]),
-    [clusters, setClusters] = useState<ClusterSummary[]>([]),
-    [catalogueClusters, setCatalogueClusters] = useState<Cluster[]>([]);
-  const [index, setIndex] = useState(0),
-    [phaseText, setPhaseText] = useState(""),
-    [approvalKey, setApprovalKey] = useState(""),
-    [edit, setEdit] = useState<Recommendation | null>(null),
-    [actor, setActor] = useState(
-      () => localStorage.getItem("ethics-actor") || "",
-    );
-  const [busy, setBusy] = useState(false),
-    [loading, setLoading] = useState(true),
+  const [prompt, setPrompt] = useState(""),
+    [busy, setBusy] = useState(false),
+    [activity, setActivity] = useState(""),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
-  const [newOpen, setNewOpen] = useState(false),
-    [newName, setNewName] = useState(""),
-    [isExample, setIsExample] = useState(false),
-    [search, setSearch] = useState("");
-  const [details, setDetails] = useState<Cluster | null>(null),
-    [history, setHistory] = useState<Event[] | null>(null),
-    [plans, setPlans] = useState<
-      { id: string; version: number; approvedAt: string }[]
-    >([]),
-    [planId, setPlanId] = useState(""),
-    [viewPlan, setViewPlan] = useState<Plan | null>(null),
-    [approval, setApproval] = useState<Plan | null>(null);
-  const [statusFilter, setStatusFilter] = useState("all"),
-    [ownerFilter, setOwnerFilter] = useState(""),
-    [phaseFilter, setPhaseFilter] = useState("");
-  const [refs, setRefs] = useState<
-    { id: string; title: string; links: string }[]
-  >([]);
-  const base = project ? "/api/projects/" + project.id : "";
-  const dirty =
-    !!project &&
-    (stage === 0
-      ? JSON.stringify(fields) !== JSON.stringify(project.profile.fields)
-      : stage === 1
-        ? JSON.stringify(selection) !== JSON.stringify(project.selectedClusters)
-        : stage === 2
-          ? JSON.stringify(edit) !==
-              JSON.stringify(project.recommendations[index]) ||
-            phaseText !== project.recommendations[index]?.phases.join("; ")
-          : false);
-  useEffect(() => {
-    const guard = (e: BeforeUnloadEvent) => {
-      if (dirty) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", guard);
-    return () => window.removeEventListener("beforeunload", guard);
-  }, [dirty]);
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [stage, index, project?.id]);
-  useEffect(() => {
-    localStorage.setItem("ethics-actor", actor);
-  }, [actor]);
+    [notice, setNotice] = useState(""),
+    [loading, setLoading] = useState(true);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null),
+    [paths, setPaths] = useState<string[]>([]),
+    [fileView, setFileView] = useState<FileContext | null>(null),
+    [folderChanged, setFolderChanged] = useState(false);
+  const [providers, setProviders] = useState<Provider[]>([]),
+    [provider, setProvider] = useState(
+      localStorage.getItem("ethicspark-provider") || "openai",
+    ),
+    [model, setModel] = useState(
+      localStorage.getItem("ethicspark-model") || "",
+    ),
+    [models, setModels] = useState<string[]>([]);
+  const [consents, setConsents] = useState<Record<string, boolean>>(() =>
+      JSON.parse(localStorage.getItem("ethicspark-consents") || "{}"),
+    ),
+    [settings, setSettings] = useState(false),
+    [newProject, setNewProject] = useState(false),
+    [projectName, setProjectName] = useState("");
+  const [attached, setAttached] = useState<Attachment[]>([]),
+    [uploading, setUploading] = useState(false),
+    [panel, setPanel] = useState<"files" | "artifacts" | "activity" | null>(
+      null,
+    ),
+    [sidebar, setSidebar] = useState(false),
+    [citation, setCitation] = useState<Citation | null>(null),
+    [citationSource, setCitationSource] = useState<{
+      title: string;
+      definition: string;
+    } | null>(null);
+  const [preview, setPreview] = useState<{
+      message: Message;
+      operation: Operation;
+      value: Preview;
+    } | null>(null),
+    [executing, setExecuting] = useState(false),
+    [liveOutput, setLiveOutput] = useState("");
+  const abort = useRef<AbortController | null>(null),
+    end = useRef<HTMLDivElement | null>(null),
+    fileInput = useRef<HTMLInputElement | null>(null),
+    composer = useRef<HTMLTextAreaElement | null>(null);
+  const project = projects.find((p) => p.id === projectId),
+    currentProvider = providers.find((p) => p.id === provider);
+  const consentKey = projectId + ":" + provider,
+    consent = !!consents[consentKey];
+  const artifacts =
+    thread?.messages.flatMap((m) => m.output?.artifacts || []) || [];
+  async function refresh() {
+    const [ps, ts] = await Promise.all([
+      api<Project[]>("/api/assistant/projects"),
+      api<Summary[]>("/api/assistant/threads"),
+    ]);
+    setProjects(ps);
+    setThreads(ts);
+    return { ps, ts };
+  }
   useEffect(() => {
     let active = true;
-    Promise.all([
-      api<Summary[]>("/api/projects"),
-      api<{ id: string; importedAt: string }[]>("/api/catalogue/versions"),
-    ])
-      .then(async ([list, vs]) => {
+    Promise.all([refresh(), api<Provider[]>("/api/reasoning/providers")])
+      .then(async ([data, ps]) => {
         if (!active) return;
-        setSummaries(list);
-        setVersions(vs);
-        const last = localStorage.getItem("ethics-project");
-        if (last && list.some((p) => p.id === last)) {
-          const p = await api<Project>("/api/projects/" + last);
-          if (active) setProject(p);
-        }
+        setProviders(ps);
+        const last = localStorage.getItem("ethicspark-thread");
+        if (last && data.ts.some((t) => t.id === last)) {
+          const t = await api<Thread>("/api/assistant/threads/" + last);
+          if (active) {
+            setThread(t);
+            setProjectId(t.projectId);
+          }
+        } else if (!data.ps.some((p) => p.id === projectId)) setProjectId("");
       })
       .catch((e) => setError(e.message))
       .finally(() => {
@@ -202,1429 +221,1318 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!project) return;
-    setFields(project.profile.fields);
-    setSelection(project.selectedClusters);
-    setEdit(project.recommendations[index]);
-    setPhaseText(project.recommendations[index]?.phases.join("; ") || "");
-    localStorage.setItem("ethics-project", project.id);
-  }, [project, index]);
+    localStorage.setItem("ethicspark-provider", provider);
+    localStorage.setItem("ethicspark-model", model);
+  }, [provider, model]);
   useEffect(() => {
-    const version = project?.catalogueVersion || versions[0]?.id;
-    if (!version) return;
+    localStorage.setItem("ethicspark-consents", JSON.stringify(consents));
+  }, [consents]);
+  useEffect(() => {
+    localStorage.setItem("ethicspark-project", projectId);
+    if (!projectId || !native) {
+      setWorkspace(null);
+      setPaths([]);
+      return;
+    }
     let active = true;
-    Promise.all([
-      api<ClusterSummary[]>("/api/catalogue/versions/" + version + "/clusters"),
-      api<Cluster[]>("/api/catalogue/versions/" + version + "/cluster-details"),
-      api<{ id: string; title: string; links: string }[]>(
-        "/api/catalogue/versions/" + version + "/references",
-      ),
-    ])
-      .then(([cs, c, rs]) => {
-        if (active) {
-          setClusters(cs);
-          setCatalogueClusters(c);
-          setRefs(rs);
-        }
+    native
+      .workspace(projectId)
+      .then((w) => {
+        if (active) setWorkspace(w);
       })
       .catch((e) => setError(e.message));
+    try {
+      setPaths(
+        JSON.parse(
+          localStorage.getItem("ethicspark-files-" + projectId) || "[]",
+        ),
+      );
+    } catch {
+      setPaths([]);
+    }
     return () => {
       active = false;
     };
-  }, [project?.catalogueVersion, versions]);
+  }, [projectId]);
   useEffect(() => {
-    if (!project || stage !== 3) return;
-    let active = true;
-    Promise.all([
-      api<Plan>(planId ? base + "/plans/" + planId : base + "/draft"),
-      api<{ id: string; version: number; approvedAt: string }[]>(
-        base + "/plans",
-      ),
-    ])
-      .then(([d, ps]) => {
-        if (active) {
-          setPlans(ps);
-          setViewPlan(d);
+    if (projectId)
+      localStorage.setItem(
+        "ethicspark-files-" + projectId,
+        JSON.stringify(paths),
+      );
+  }, [paths, projectId]);
+  useEffect(() => {
+    if (thread) localStorage.setItem("ethicspark-thread", thread.id);
+    end.current?.scrollIntoView({ behavior: "smooth" });
+  }, [thread?.messages.length, thread?.messages.at(-1)?.status]);
+  useEffect(
+    () =>
+      native?.onWorkspaceChanged((event) => {
+        if (event.projectId === projectId) {
+          setFolderChanged(true);
+          native
+            .workspace(projectId)
+            .then(setWorkspace)
+            .catch((e) => setError(e.message));
         }
-      })
-      .catch((e) => setError(e.message));
-    return () => {
-      active = false;
-    };
-  }, [project?.id, project?.revision, stage, planId]);
-  async function work(task: () => Promise<void>) {
-    setBusy(true);
+      }),
+    [projectId],
+  );
+  useEffect(
+    () =>
+      native?.onCommandOutput((event) => {
+        if (event.ticket === preview?.value.ticket)
+          setLiveOutput((v) => (v + event.text).slice(-100000));
+      }),
+    [preview?.value.ticket],
+  );
+  async function ensureProject() {
+    if (projectId) return projectId;
+    const p = await api<Project>("/api/assistant/projects", {
+      name: "My workspace",
+    });
+    setProjectId(p.id);
+    await refresh();
+    return p.id;
+  }
+  async function createProject(link = false) {
     setError("");
     try {
-      await task();
+      const p = await api<Project>("/api/assistant/projects", {
+        name: projectName.trim() || "New project",
+      });
+      setProjectId(p.id);
+      setThread(null);
+      setAttached([]);
+      setPrompt("");
+      setNewProject(false);
+      setProjectName("");
+      await refresh();
+      if (link && native) setWorkspace(await native.linkFolder(p.id));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function linkFolder() {
+    if (!native) {
+      setNotice(
+        "Open the EthicSpark desktop app to link a live folder. Run ./scripts/desktop.sh. You can still chat and upload files here.",
+      );
+      return;
+    }
+    try {
+      const id = await ensureProject();
+      const w = await native.linkFolder(id);
+      if (w) {
+        setWorkspace(w);
+        setPaths([]);
+        setPanel("files");
+        setNotice(
+          "Folder linked for reading. Every edit and command will require your permission.",
+        );
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function chooseProject(id: string) {
+    if (busy || executing) return;
+    setProjectId(id);
+    setAttached([]);
+    setPrompt("");
+    setFileView(null);
+    setSidebar(false);
+    const last = threads.find((t) => t.projectId === id);
+    setThread(
+      last ? await api<Thread>("/api/assistant/threads/" + last.id) : null,
+    );
+  }
+  async function chooseThread(id: string) {
+    if (busy || executing) return;
+    try {
+      const t = await api<Thread>("/api/assistant/threads/" + id);
+      setProjectId(t.projectId);
+      setThread(t);
+      setAttached([]);
+      setPrompt("");
+      setSidebar(false);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function upload(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    setError("");
+    try {
+      if (attached.length + files.length > 10)
+        throw Error("Attach at most ten files per message.");
+      const id = await ensureProject();
+      for (const file of Array.from(files)) {
+        if (attached.length >= 10)
+          throw Error("Attach at most ten files per message.");
+        const data = new FormData();
+        data.append("field", "additional");
+        data.append("file", file);
+        const response = await fetch("/api/projects/" + id + "/attachments", {
+          method: "POST",
+          body: data,
+        });
+        const body = await response.json();
+        if (!response.ok) throw Error(body.detail || "Upload failed.");
+        setAttached((v) => [...v, body]);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setBusy(false);
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
     }
   }
-  function discard() {
-    if (dirty && !window.confirm("Discard your unsaved changes?")) return false;
-    if (project) {
-      setFields(project.profile.fields);
-      setSelection(project.selectedClusters);
-      setEdit(project.recommendations[index]);
-      setPhaseText(project.recommendations[index]?.phases.join("; ") || "");
+  async function readContext(id: string, include: string[]) {
+    if (!native) return { name: "", tree: [], files: [] as FileContext[] };
+    const w = await native.workspace(id);
+    setWorkspace(w);
+    if (!w) return { name: "", tree: [], files: [] as FileContext[] };
+    const files: FileContext[] = [];
+    for (const path of include.slice(0, 20)) {
+      try {
+        files.push(await native.readFile(id, path));
+      } catch (e) {
+        setNotice(path + ": " + (e as Error).message);
+      }
     }
-    return true;
+    setFolderChanged(false);
+    return { name: w.name, tree: w.tree, files };
   }
-  function go(next: number) {
-    if (discard()) setStage(next);
+  const sending = useRef(false);
+  async function send(continuation = false, existing?: Thread) {
+    if (sending.current) return;
+    sending.current = true;
+    try {
+      await performSend(continuation, existing);
+    } finally {
+      sending.current = false;
+    }
   }
-  async function refreshList() {
-    setSummaries(await api<Summary[]>("/api/projects"));
-  }
-  function openNew(demo: boolean) {
-    if (!discard()) return;
-    setIsExample(demo);
-    setNewName(demo ? "Support ticket portal" : "");
-    setNewOpen(true);
-  }
-  async function create() {
-    await work(async () => {
-      let p = await api<Project>("/api/projects", "POST", {
-        name: newName,
-        actor,
-      });
-      if (isExample)
-        p = await api<Project>("/api/projects/" + p.id + "/profile", "PUT", {
-          revision: p.revision,
-          actor,
-          fields: example,
-          confirm: false,
+  async function performSend(continuation = false, existing?: Thread) {
+    if (busy || uploading || executing) return;
+    let id = projectId;
+    try {
+      if (!id) id = await ensureProject();
+    } catch (e) {
+      setError((e as Error).message);
+      return;
+    }
+    if (!model.trim() || !currentProvider?.configured) {
+      setSettings(true);
+      return;
+    }
+    if (!consents[id + ":" + provider]) {
+      setSettings(true);
+      return;
+    }
+    const text = continuation
+      ? "Continue the task using the current workspace and actual operation results."
+      : prompt.trim();
+    if (!continuation && !text && !attached.length) return;
+    setBusy(true);
+    setError("");
+    setActivity("Reading the current project context…");
+    abort.current = new AbortController();
+    let current = existing || thread,
+      include = [...paths];
+    try {
+      if (!current) {
+        current = await api<Thread>("/api/assistant/threads", {
+          projectId: id,
         });
-      setProject(p);
-      setStage(0);
-      setIndex(0);
-      setNewOpen(false);
-      await refreshList();
-      setNotice(
-        isExample
-          ? "Example loaded. Review the profile and confirm it when ready."
-          : "Project created. Start with the application profile.",
-      );
-    });
+        setThread(current);
+      }
+      const initialFiles = continuation ? [] : attached.map((a) => a.id);
+      if (!continuation) {
+        setPrompt("");
+        setAttached([]);
+      }
+      for (let round = 0; round < 3; round++) {
+        const context = await readContext(id, include);
+        setActivity(
+          round
+            ? "Reading requested files and continuing…"
+            : "Thinking through your request…",
+        );
+        const body = {
+          revision: current!.revision,
+          requestKey: crypto.randomUUID(),
+          text: round ? "Continue using the requested file contents." : text,
+          provider,
+          model,
+          consent: true,
+          attachmentIds: round ? [] : initialFiles,
+          workspace: context,
+          continuation: continuation || round > 0,
+        };
+        // Start the request before polling, so a saved user message appears while the model works.
+        const response: Promise<Thread> = api<Thread>(
+          "/api/assistant/threads/" + current!.id + "/messages",
+          body,
+          abort.current!.signal,
+        );
+        const timer = setInterval(() => {
+          if (current)
+            void api<Thread>("/api/assistant/threads/" + current.id)
+              .then((latest) =>
+                setThread((previous) =>
+                  previous?.id === latest.id &&
+                  previous.revision > latest.revision
+                    ? previous
+                    : latest,
+                ),
+              )
+              .catch(() => {});
+        }, 1500);
+        try {
+          current = await response;
+        } finally {
+          clearInterval(timer);
+        }
+        setThread(current);
+        const last = current!.messages.at(-1);
+        if (last?.status === "error" || last?.status === "cancelled") break;
+        const requested = last?.output?.readFiles || [];
+        if (
+          !native ||
+          (!workspace && !(await native.workspace(id))) ||
+          !requested.length
+        )
+          break;
+        const fresh = requested.filter((p) => !include.includes(p));
+        if (!fresh.length) break;
+        include = [...new Set([...include, ...fresh])].slice(-20);
+        setPaths(include);
+      }
+      await refresh();
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        setError((e as Error).message);
+        if (!continuation) {
+          setPrompt((v) => v || text);
+          setAttached((v) => (v.length ? v : attached));
+        }
+        if (current)
+          setThread(await api<Thread>("/api/assistant/threads/" + current.id));
+      }
+    } finally {
+      setBusy(false);
+      setActivity("");
+      abort.current = null;
+      composer.current?.focus();
+    }
   }
-  async function saveProfile(confirm: boolean) {
-    await work(async () => {
-      const p = await api<Project>(base + "/profile", "PUT", {
-        revision: project!.revision,
-        actor,
-        fields,
-        confirm,
+  async function stop() {
+    abort.current?.abort();
+    if (thread) {
+      setThread(
+        await api<Thread>("/api/assistant/threads/" + thread.id + "/stop", {}),
+      );
+    }
+    setBusy(false);
+    setActivity("");
+  }
+  async function loadModels() {
+    setError("");
+    try {
+      const ids = await api<string[]>(
+        "/api/reasoning/providers/" + provider + "/models",
+      );
+      setModels(ids);
+      if (!model && ids.length) setModel(ids[0]);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function openFile(path: string) {
+    if (!native || !projectId) return;
+    try {
+      const f = await native.readFile(projectId, path);
+      setFileView(f);
+      setPaths((v) => [...new Set([...v, path])].slice(-20));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function inspectCitation(c: Citation) {
+    setCitation(c);
+    setCitationSource(null);
+    if (project)
+      try {
+        setCitationSource(
+          await api(
+            "/api/catalogue/versions/" +
+              project.catalogueVersion +
+              "/clusters/" +
+              c.clusterId,
+          ),
+        );
+      } catch (e) {
+        setError((e as Error).message);
+      }
+  }
+  async function prepare(message: Message, operation: Operation) {
+    if (!native || !thread) return;
+    setError("");
+    try {
+      const value = await native.prepareOperation(thread.projectId, operation);
+      setPreview({ message, operation, value });
+      setLiveOutput("");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function record(
+    message: Message,
+    operation: Operation,
+    result: Receipt,
+  ) {
+    if (!thread) return null;
+    const t = await api<Thread>(
+      "/api/assistant/threads/" +
+        thread.id +
+        "/messages/" +
+        message.id +
+        "/receipts",
+      { operationId: operation.id, ...result },
+    );
+    setThread(t);
+    return t;
+  }
+  async function deny(message: Message, operation: Operation) {
+    try {
+      await record(message, operation, {
+        status: "rejected",
+        summary: "Developer declined the proposed operation.",
+        output: "",
+        exitCode: null,
       });
-      setProject(p);
-      await refreshList();
-      setNotice(
-        confirm
-          ? "Profile confirmed. You can now select concerns."
-          : "Profile draft saved.",
-      );
-      if (confirm) setStage(1);
-    });
-  }
-  async function saveSelection() {
-    await work(async () => {
-      const p = await api<Project>(base + "/selection", "PUT", {
-        revision: project!.revision,
-        actor,
-        clusterIds: selection,
-      });
-      setProject(p);
-      setNotice("Cluster selection saved.");
-      setIndex(0);
-      if (selection.length) setStage(2);
-    });
-  }
-  async function review(decision: string) {
-    if (!edit) return;
-    await work(async () => {
-      const p = await api<Project>(
-        base + "/recommendations/" + edit.sourceActionId,
-        "PUT",
-        {
-          revision: project!.revision,
-          actor,
-          recommendation: {
-            ...edit,
-            phases: phaseText
-              .split(";")
-              .map((v) => v.trim())
-              .filter(Boolean),
-          },
-          decision,
-        },
-      );
-      setProject(p);
-      setNotice(
-        decision === "save"
-          ? "Draft saved. It still needs explicit acceptance."
-          : "Review decision recorded.",
-      );
-    });
-  }
-  async function inspect(id: string) {
-    await work(async () => {
-      const version = project?.catalogueVersion || versions[0]?.id;
-      setDetails(
-        await api<Cluster>(
-          "/api/catalogue/versions/" + version + "/clusters/" + id,
-        ),
-      );
-    });
-  }
-  async function chooseProject(id: string) {
-    if (!id || !discard()) return;
-    await work(async () => {
-      setProject(await api<Project>("/api/projects/" + id));
-      setIndex(0);
-      setStage(0);
-      setPlanId("");
-    });
-  }
-  async function selectPlan(id: string) {
-    await work(async () => {
-      setViewPlan(
-        await api<Plan>(id ? base + "/plans/" + id : base + "/draft"),
-      );
-      setPlanId(id);
-    });
+      setPreview(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
   async function approve() {
-    if (!approval) return;
-    await work(async () => {
-      const p = await api<Plan>(base + "/plans", "POST", {
-        revision: approval.projectRevision,
-        actor,
-        requestKey: approvalKey,
+    if (!preview || !native) return;
+    setExecuting(true);
+    setLiveOutput("");
+    try {
+      const result = await native.approveOperation(preview.value.ticket);
+      await record(preview.message, preview.operation, result);
+      setNotice(result.summary);
+      setPreview(null);
+    } catch (e) {
+      const message = (e as Error).message;
+      setError(message);
+      await record(preview.message, preview.operation, {
+        status: "failed",
+        summary: message,
+        output: "",
+        exitCode: null,
       });
-      const [latest, list] = await Promise.all([
-        api<Project>(base),
-        api<{ id: string; version: number; approvedAt: string }[]>(
-          base + "/plans",
-        ),
-      ]);
-      setApproval(null);
-      setProject(latest);
-      setNotice("Approved snapshot saved. Implementation remains Not started.");
-      setPlans(list);
-      setViewPlan(p);
-      setPlanId(p.id);
-    });
+      setPreview(null);
+    } finally {
+      setExecuting(false);
+    }
   }
-  function patch(key: keyof Recommendation, value: unknown) {
-    setEdit((e) => (e ? { ...e, [key]: value } : e));
-  }
-  const accepted =
-    project?.recommendations.filter((r) =>
-      ["accepted", "edited"].includes(r.reviewStatus),
-    ).length || 0;
-  const unknowns = fields.filter((f) => f.status === "unknown").length;
-  const source = catalogueClusters.flatMap(c=>c.actions).find(a=>a.id===edit?.sourceActionId);
-  const shown = clusters.filter((c) =>
-    (c.id + " " + c.title + " " + c.definition + " " + c.concerns.join(" "))
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  );
-
+  const pending = thread?.messages.some((m) => m.status === "pending");
+  const visibleMessages =
+    thread?.messages.filter((m) => m.role !== "tool") || [];
   return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-icon">E</div>
-          <div>
-            <Typography fontWeight={600} fontSize={20}>
-              EthicSpark
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Ethics-aware engineering
-            </Typography>
-          </div>
+    <div className={"assistant-root" + (sidebar ? " sidebar-open" : "")}>
+      <aside className="assistant-sidebar">
+        <div className="assistant-brand">
+          <span className="brand-mark">
+            <Icon name="shield" size={21} />
+          </span>
+          <strong>EthicSpark</strong>
+          <span className="desktop-badge">
+            {native ? "Desktop" : "Workspace"}
+          </span>
         </div>
-        <Typography
-          variant="overline"
-          color="text.secondary"
-          sx={{ px: 1.5, mb: 1 }}
+        <button
+          className="side-new"
+          onClick={() => {
+            if (!busy && !executing) {
+              setThread(null);
+              setPrompt("");
+              setAttached([]);
+              setSidebar(false);
+              composer.current?.focus();
+            }
+          }}
         >
-          Project workspace
-        </Typography>
-        <nav>
-          {steps.map((s, i) => (
-            <Button
-              key={s}
-              fullWidth
-              className={stage === i ? "selected-step" : ""}
-              onClick={() => go(i)}
-              disabled={busy || (!project && i !== 1)}
-              sx={{
-                justifyContent: "flex-start",
-                textAlign: "left",
-                px: 1.5,
-                py: 1.5,
-                mb: 0.5,
-                color: stage === i ? "primary.main" : "text.secondary",
-                bgcolor: stage === i ? "#e8f0fe" : "transparent",
-              }}
-            >
-              <span className="step-dot">{i + 1}</span>
-              {s}
-            </Button>
+          <Icon name="plus" />
+          New conversation
+        </button>
+        <div className="side-heading">
+          Projects
+          <button
+            title="New project"
+            aria-label="New project"
+            onClick={() => setNewProject(true)}
+          >
+            <Icon name="plus" size={16} />
+          </button>
+        </div>
+        <div className="project-list">
+          {projects.map((p) => (
+            <div key={p.id}>
+              <button
+                className={
+                  "project-row " + (p.id === projectId ? "selected" : "")
+                }
+                onClick={() => void chooseProject(p.id)}
+              >
+                <Icon name="folder" />
+                <span>{p.name}</span>
+              </button>
+              {p.id === projectId && (
+                <div className="thread-list">
+                  {threads
+                    .filter((t) => t.projectId === p.id)
+                    .map((t) => (
+                      <button
+                        key={t.id}
+                        className={thread?.id === t.id ? "active" : ""}
+                        onClick={() => void chooseThread(t.id)}
+                      >
+                        {t.title}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
           ))}
-        </nav>
-        <Divider sx={{ my: 3 }} />
-        <Button
-          onClick={() => openNew(false)}
-          variant="outlined"
-          disabled={busy || !versions.length}
-        >
-          + New project
-        </Button>
-        <div className="local-note">
-          <strong>Catalogue workspace</strong>
-          <p>
-            Local workspace. Reviewer names are self-reported. Model analysis runs only when you request it.
-          </p>
-          <a href="/api/catalogue/versions" target="_blank" rel="noreferrer">
-            Catalogue API ↗
-          </a>
+          {!projects.length && !loading && (
+            <p className="side-empty">
+              Start a conversation, or create a project and link its folder.
+            </p>
+          )}
+        </div>
+        <div className="side-bottom">
+          <button onClick={() => setSettings(true)}>
+            <Icon name="gear" />
+            Model settings
+          </button>
+          <span>
+            Ethics-aware software development
+            <br />
+            Your workflow, with the catalogue in context.
+          </span>
         </div>
       </aside>
-      <div>
-        <header className="topbar">
-          <div>
-            <Typography fontSize={14} color="text.secondary">
-              {project ? "Projects / " + project.name : "Developer workspace"}
-            </Typography>
-            <Typography fontSize={13} color="text.secondary">
-              {project
-                ? "Profile " +
-                  (project.profile.version || "draft") +
-                  " · " +
-                  (project.profile.confirmed ? "Confirmed" : "Draft")
-                : "Turn ethical concerns into practical engineering work"}
-            </Typography>
+      <section className="assistant-main">
+        <header className="assistant-topbar">
+          <div className="topbar-left">
+            <button
+              className="icon-button mobile-menu"
+              aria-label="Toggle sidebar"
+              onClick={() => setSidebar((v) => !v)}
+            >
+              <Icon name="menu" />
+            </button>
+            <span className="project-breadcrumb">
+              {project?.name || "Your workspace"}
+            </span>
+            <span className="header-divider">/</span>
+            <span className="conversation-title">
+              {thread?.title || "New conversation"}
+            </span>
           </div>
-          <div className="toolbar">
-            {summaries.length > 0 && (
-              <TextField
-                select
-                label="Open project"
-                value={project?.id || ""}
-                onChange={(e) => chooseProject(e.target.value)}
-                sx={{ minWidth: 180, maxWidth: 240 }}
-                disabled={busy}
-              >
-                <MenuItem value="">Choose a project</MenuItem>
-                {summaries.map((p) => (
-                  <MenuItem value={p.id} key={p.id}>
-                    {p.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-            <TextField
-              label="Reviewer name"
-              value={actor}
-              onChange={(e) => setActor(e.target.value)}
-              helperText="For the local decision history"
-              sx={{ width: 190 }}
-            />
+          <div className="topbar-actions">
+            <button className="model-pill" onClick={() => setSettings(true)}>
+              {model || "Connect a model"}
+              <span>⌄</span>
+            </button>
+            <button
+              className="icon-button"
+              title="Project context"
+              aria-label="Project context"
+              onClick={() => setPanel(panel ? null : "files")}
+            >
+              <Icon name="files" />
+            </button>
           </div>
         </header>
-        {busy && <LinearProgress aria-label="Saving or loading" />}
-        <main className="main">
-          {error && (
-            <Alert
-              severity="error"
-              sx={{ mb: 3 }}
-              action={
-                <Button
-                  color="inherit"
-                  size="small"
-                  onClick={() => window.location.reload()}
-                >
-                  Reload
-                </Button>
-              }
-            >
+        {error && (
+          <div className="workspace-error">
+            <Alert severity="error" onClose={() => setError("")}>
               {error}
             </Alert>
-          )}
-          {loading ? (
-            <Box sx={{ p: 8, textAlign: "center" }}>
-              <CircularProgress />
-              <Typography sx={{ mt: 2 }}>Opening your workspace…</Typography>
-            </Box>
-          ) : !project && stage !== 1 ? (
-            <>
-              <div className="intro">
-                <div>
-                  <div className="eyebrow">
-                    From concerns to concrete actions
-                  </div>
-                  <Typography variant="h4">
-                    Build an ethics action plan
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ mt: 1 }}>
-                    A guided workspace for applying the catalogue to your
-                    software.
-                  </Typography>
-                </div>
-                <Chip
-                  label="Manual or LLM-assisted workflow"
-                  sx={{ bgcolor: "#e8f0fe", color: "#1967d2" }}
-                />
+          </div>
+        )}
+        <div className="conversation-scroll">
+          {!visibleMessages.length ? (
+            <div className="welcome">
+              <div className="welcome-symbol">
+                <Icon name="shield" size={30} />
               </div>
-              <Paper className="empty-hero panel">
-                <div className="hero-symbol">◇</div>
-                <Typography variant="h5">
-                  Start with your application
-                </Typography>
-                <Typography
-                  color="text.secondary"
-                  sx={{ my: 2, maxWidth: 540, mx: "auto" }}
-                >
-                  Describe the context, select relevant concerns and turn six
-                  catalogue actions into a reviewed plan. Keep ownership,
-                  evidence and open questions in view.
-                </Typography>
-                <Stack
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={2}
-                  justifyContent="center"
-                  sx={{ mt: 3 }}
-                >
-                  <Button
-                    variant="contained"
-                    size="large"
-                    onClick={() => openNew(false)}
-                    disabled={!versions.length}
-                  >
-                    Create a project
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    onClick={() => openNew(true)}
-                    disabled={!versions.length}
-                  >
-                    Start with an example
-                  </Button>
-                </Stack>
-                <Button sx={{ mt: 2 }} onClick={() => setStage(1)}>
-                  Explore the catalogue →
-                </Button>
-                {!versions.length && (
-                  <Alert severity="warning" sx={{ mt: 3 }}>
-                    No catalogue has been imported. Check the service import
-                    report.
-                  </Alert>
-                )}
-              </Paper>
-              <div className="summary-grid" style={{ marginTop: 24 }}>
+              <span className="welcome-eyebrow">
+                A workspace for thoughtful engineering
+              </span>
+              <h1>What are you building?</h1>
+              <p>
+                Ask a question, share a document, or work with your project.
+                <br />
+                Start where you are. We’ll work through the details together.
+              </p>
+              <div className="starter-grid">
                 {[
-                  ["01", "Describe your context"],
-                  ["02", "Adapt and review actions"],
-                  ["03", "Export a traceable plan"],
-                ].map(([n, t]) => (
-                  <Paper key={n} className="panel">
-                    <Typography color="primary" fontWeight={600}>
-                      {n}
-                    </Typography>
-                    <Typography sx={{ mt: 1 }}>{t}</Typography>
-                  </Paper>
+                  [
+                    "Review my project",
+                    "Help me understand this project and identify practical improvements.",
+                  ],
+                  [
+                    "Think through a design",
+                    "Help me think through the architecture of a system I’m building.",
+                  ],
+                  [
+                    "Investigate a problem",
+                    "Help me investigate a bug and plan targeted tests.",
+                  ],
+                  [
+                    "Explore an ethical concern",
+                    "Help me assess the ethical implications of a software feature.",
+                  ],
+                ].map(([title, text]) => (
+                  <button
+                    key={title}
+                    onClick={() => {
+                      setPrompt(text);
+                      composer.current?.focus();
+                    }}
+                  >
+                    <Icon
+                      name={title.includes("ethical") ? "shield" : "code"}
+                    />
+                    <span>{title}</span>
+                    <Icon name="arrow" size={14} />
+                  </button>
                 ))}
               </div>
-            </>
+              {!projectId && (
+                <button className="welcome-link" onClick={linkFolder}>
+                  <Icon name="folder" />
+                  Link a project folder <span>optional</span>
+                </button>
+              )}
+            </div>
           ) : (
-            <>
-              <div className="intro">
-                <div>
-                  <div className="eyebrow">
-                    Step {stage + 1} of 4 · Reviewed workflow
+            <div className="messages">
+              {visibleMessages.map((m) => (
+                <article key={m.id} className={"message message-" + m.role}>
+                  {m.role === "user" ? (
+                    <>
+                      <div className="user-bubble">{m.text}</div>
+                      {m.attachmentIds.length > 0 && (
+                        <span className="message-material">
+                          <Icon name="attach" size={14} />
+                          {m.attachmentIds.length} attached file(s)
+                        </span>
+                      )}
+                      {m.contextManifest.length > 0 && (
+                        <span className="message-material">
+                          Context from {m.contextManifest.length} project
+                          file(s)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="assistant-avatar">
+                        <Icon name="shield" size={18} />
+                      </div>
+                      <div className="assistant-response">
+                        {m.status === "pending" ? (
+                          <div className="thinking">
+                            <span className="thinking-dot" />
+                            {activity || "Working on your request…"}
+                          </div>
+                        ) : m.status === "error" ? (
+                          <div className="response-error">
+                            <strong>Response unavailable</strong>
+                            <p>{m.text}</p>
+                            <button onClick={() => void send(true)}>
+                              Retry with saved context
+                            </button>
+                          </div>
+                        ) : (
+                          <RichText text={m.text} />
+                        )}
+                        {m.output?.citations.length ? (
+                          <div className="catalogue-citations">
+                            <span>
+                              <Icon name="shield" size={13} />
+                              Catalogue context
+                            </span>
+                            {m.output.citations.map((c, i) => (
+                              <button
+                                key={i}
+                                onClick={() => void inspectCitation(c)}
+                              >
+                                {c.clusterId}
+                                {c.actionIds.length
+                                  ? " · " + c.actionIds.join(", ")
+                                  : ""}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                        {m.output?.readFiles.length ? (
+                          <div className="read-request">
+                            <Icon name="files" size={15} />
+                            Requested context: {m.output.readFiles.join(", ")}
+                            {!native && (
+                              <span>
+                                {" "}
+                                — link the folder in the desktop app to read
+                                these files.
+                              </span>
+                            )}
+                          </div>
+                        ) : null}
+                        {m.output?.operations.map((op) => {
+                          const result = thread?.receipts.find(
+                            (r) =>
+                              r.messageId === m.id && r.operationId === op.id,
+                          );
+                          return (
+                            <div className="operation-card" key={op.id}>
+                              <div className="operation-heading">
+                                <Icon
+                                  name={op.kind === "write" ? "files" : "code"}
+                                />
+                                <strong>
+                                  {op.kind === "write"
+                                    ? op.path
+                                    : [op.program, ...op.args].join(" ")}
+                                </strong>
+                                <span
+                                  className={
+                                    "operation-state " + (result?.status || "")
+                                  }
+                                >
+                                  {result?.status || "Permission required"}
+                                </span>
+                              </div>
+                              <p>{op.reason}</p>
+                              {result ? (
+                                <details>
+                                  <summary>{result.summary}</summary>
+                                  <pre>{result.output}</pre>
+                                </details>
+                              ) : (
+                                <div className="operation-buttons">
+                                  <button
+                                    disabled={!native || busy || executing}
+                                    onClick={() => void prepare(m, op)}
+                                  >
+                                    Review{" "}
+                                    {op.kind === "write" ? "change" : "command"}
+                                  </button>
+                                  <button
+                                    disabled={busy || executing}
+                                    onClick={() => void deny(m, op)}
+                                  >
+                                    Decline
+                                  </button>
+                                  {!native && (
+                                    <small>
+                                      File changes and commands require the
+                                      desktop app.
+                                    </small>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {m.output?.artifacts.map((a, i) => (
+                          <button
+                            className="artifact-card"
+                            key={i}
+                            onClick={() => download(a)}
+                          >
+                            <span className="artifact-icon">
+                              <Icon name="files" />
+                            </span>
+                            <span>
+                              <strong>{a.name}</strong>
+                              <small>Generated document · Download</small>
+                            </span>
+                            <Icon name="download" />
+                          </button>
+                        ))}
+                        {m.status === "complete" && (
+                          <div className="response-meta">
+                            {m.model}
+                            <button
+                              onClick={() =>
+                                navigator.clipboard
+                                  .writeText(m.text)
+                                  .then(() => setNotice("Response copied."))
+                                  .catch(() =>
+                                    setNotice(
+                                      "Clipboard access is unavailable.",
+                                    ),
+                                  )
+                              }
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </article>
+              ))}
+              <div ref={end} />
+            </div>
+          )}
+        </div>
+        <div className="composer-region">
+          <div className="composer-wrap">
+            {workspace && (
+              <div className="workspace-chip">
+                <Icon name="folder" size={14} />
+                <button onClick={() => setPanel("files")}>
+                  {workspace.name}
+                </button>
+                <span>
+                  {folderChanged ? "Changed · refresh on send" : "Live folder"}
+                </span>
+                <span className="permission-chip">Ask before changes</span>
+              </div>
+            )}
+            {attached.length > 0 && (
+              <div className="attachment-chips">
+                {attached.map((a) => (
+                  <div key={a.id} title={a.extraction}>
+                    <Icon name="attach" size={14} />
+                    {a.name}
+                    <button
+                      aria-label={"Remove " + a.name}
+                      onClick={() =>
+                        setAttached((v) => v.filter((f) => f.id !== a.id))
+                      }
+                    >
+                      ×
+                    </button>
                   </div>
-                  <Typography variant="h4">{steps[stage]}</Typography>
-                  <Typography color="text.secondary" sx={{ mt: 1 }}>
-                    {
-                      [
-                        "Describe what you are building and make unknowns explicit.",
-                        "Inspect the catalogue and choose the concerns to address.",
-                        "Connect the original guidance to your application.",
-                        "Review your decisions and preserve a version of your plan.",
-                      ][stage]
-                    }
-                  </Typography>
+                ))}
+              </div>
+            )}
+            <div
+              className="prompt-box"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (!busy) void upload(e.dataTransfer.files);
+              }}
+            >
+              <textarea
+                ref={composer}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Ask anything about your software, or describe what you want to do…"
+                aria-label="Message EthicSpark"
+                rows={3}
+                disabled={uploading}
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    !e.nativeEvent.isComposing
+                  ) {
+                    e.preventDefault();
+                    void send();
+                  }
+                }}
+              />
+              <div className="composer-tools">
+                <div>
+                  <button
+                    className="icon-button"
+                    title="Attach files"
+                    aria-label="Attach files"
+                    disabled={busy || uploading}
+                    onClick={() => fileInput.current?.click()}
+                  >
+                    <Icon name="attach" />
+                  </button>
+                  <button
+                    className="icon-button"
+                    title="Link a folder"
+                    aria-label="Link a folder"
+                    disabled={busy || executing}
+                    onClick={linkFolder}
+                  >
+                    <Icon name="folder" />
+                  </button>
+                  {uploading && (
+                    <span className="composer-status">Uploading…</span>
+                  )}
+                  {busy && <span className="composer-status">{activity}</span>}
                 </div>
-                {project && (
-                  <Chip
-                    label={
-                      project.profile.confirmed
-                        ? "Profile confirmed"
-                        : "Profile needs confirmation"
+                {busy || pending ? (
+                  <button
+                    className="send-button stop-button"
+                    aria-label="Stop response"
+                    onClick={() => void stop()}
+                  >
+                    <Icon name="stop" />
+                  </button>
+                ) : (
+                  <button
+                    className="send-button"
+                    aria-label="Send message"
+                    disabled={
+                      uploading ||
+                      (!prompt.trim() && !attached.length) ||
+                      executing
                     }
-                    color={project.profile.confirmed ? "success" : "default"}
-                    variant="outlined"
-                  />
+                    onClick={() => void send()}
+                  >
+                    <Icon name="send" />
+                  </button>
                 )}
               </div>
-              {stage === 0 && project && (
-                <>
-                  <Paper className="panel">
-                    <div
-                      className="toolbar"
-                      style={{
-                        justifyContent: "space-between",
-                        marginBottom: 24,
-                      }}
-                    >
-                      <Typography variant="h6">Application context</Typography>
-                      <Chip
-                        size="small"
-                        label={
-                          unknowns +
-                          " explicit unknown" +
-                          (unknowns === 1 ? "" : "s")
-                        }
-                      />
-                    </div>
-                    <ProfileFields base={base} fields={fields} setFields={setFields} disabled={busy} onError={setError} onUploading={setBusy} />
-                    <div className="sticky-actions">
-                      <Button
-                        disabled={busy || !actor.trim()}
-                        onClick={() => saveProfile(false)}
-                      >
-                        Save draft
-                      </Button>
-                      <Button
-                        variant="contained"
-                        disabled={
-                          busy ||
-                          !actor.trim() ||
-                          (project.profile.confirmed && !dirty)
-                        }
-                        onClick={() => saveProfile(true)}
-                      >
-                        Confirm profile
-                      </Button>
-                      {project.profile.confirmed && !dirty && (
-                        <Button variant="contained" onClick={() => go(1)}>
-                          Continue to clusters →
-                        </Button>
-                      )}
-                    </div>
-                  </Paper>
-                  {project.profile.version > 0 && (
-                    <Alert severity="info" sx={{ mt: 2 }}>
-                      Changing the context opens a new profile draft and returns
-                      all recommendations to Proposed. Approved plans remain
-                      unchanged.
-                    </Alert>
-                  )}
-                </>
-              )}
-              {stage === 1 && (
-                <>
-                  {project && <ReasoningPanel key={project.id} project={project} actor={actor} clusters={catalogueClusters} disabled={busy}
-                    onError={setError} onBusy={setBusy} onApply={p=>{setProject(p);setIndex(0);setStage(2);setNotice("Model proposal saved. Review and accept each action separately.");void refreshList();}} />}
-                  <Paper className="panel" sx={{ mb: 3 }}>
-                    <div
-                      className="toolbar"
-                      style={{ justifyContent: "space-between" }}
-                    >
-                      <TextField
-                        label="Search clusters"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        sx={{ minWidth: 260 }}
-                      />
-                      <Typography variant="body2" color="text.secondary">
-                        {clusters.length} clusters · 144 source actions · 184
-                        references
-                      </Typography>
-                      {project && (
-                        <Button
-                          variant="contained"
-                          disabled={
-                            busy || !project.profile.confirmed || !actor.trim()
-                          }
-                          onClick={saveSelection}
-                        >
-                          Save selection{selection.length ? " and adapt →" : ""}
-                        </Button>
-                      )}
-                    </div>
-                    <div className="selection-note" style={{ marginTop: 20 }}>
-                      Select relevant clusters manually, or review a model proposal above. Each selected cluster has six source actions; assess their suitability for your selected phases.
-                    </div>
-                    {project && !project.profile.confirmed && (
-                      <Alert severity="info" sx={{ mt: 2 }}>
-                        Confirm the application profile before saving a cluster
-                        selection.
-                      </Alert>
-                    )}
-                  </Paper>
-                  <div className="cluster-grid">
-                    {shown.map((c) => (
-                      <Paper
-                        className="panel cluster-card"
-                        key={c.id}
-                        sx={{
-                          borderColor: selection.includes(c.id)
-                            ? "#1967d2"
-                            : undefined,
-                          bgcolor: selection.includes(c.id)
-                            ? "#f3f7ff"
-                            : "white",
-                        }}
-                      >
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                        >
-                          <Typography variant="overline" color="primary">
-                            {c.id}
-                          </Typography>
-                          {selection.includes(c.id) && (
-                            <Chip
-                              size="small"
-                              label="Selected"
-                              color="primary"
-                              variant="outlined"
-                            />
-                          )}
-                        </Stack>
-                        <Typography fontWeight={600} sx={{ mt: 1, mb: 1 }}>
-                          {c.title}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ flex: 1 }}
-                        >
-                          {c.concerns.join(" · ")}
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                          sx={{ mt: 2 }}
-                        >
-                          <Button
-                            size="small"
-                            onClick={() => inspect(c.id)}
-                            disabled={busy}
-                          >
-                            View details
-                          </Button>
-                          {project && (
-                            <FormControlLabel
-                              sx={{ mr: 0 }}
-                              control={
-                                <Checkbox
-                                  checked={selection.includes(c.id)}
-                                  disabled={!project.profile.confirmed || busy}
-                                  onChange={(e) =>
-                                    setSelection(
-                                      e.target.checked ? [...selection, c.id] : selection.filter(id=>id!==c.id),
-                                    )
-                                  }
-                                />
-                              }
-                              label="Select"
-                            />
-                          )}
-                        </Stack>
-                      </Paper>
-                    ))}
-                  </div>
-                  {shown.length === 0 && (
-                    <Alert severity="info">
-                      No clusters match this search.
-                    </Alert>
-                  )}
-                  {project && (
-                    <div className="sticky-actions">
-                      <Typography
-                        variant="body2"
-                        sx={{ mr: "auto", alignSelf: "center" }}
-                      >
-                        {selection.length} cluster selected
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        disabled={
-                          busy || !project.profile.confirmed || !actor.trim()
-                        }
-                        onClick={saveSelection}
-                      >
-                        Save selection{selection.length ? " and adapt →" : ""}
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-              {stage === 2 &&
-              project &&
-              (!project.profile.confirmed ||
-                project.selectedClusters.length === 0) ? (
-                <Alert
-                  severity="info"
-                  action={
-                    <Button
-                      onClick={() => go(project.profile.confirmed ? 1 : 0)}
-                    >
-                      Continue setup
-                    </Button>
-                  }
+            </div>
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              hidden
+              onChange={(e) => void upload(e.target.files)}
+            />
+            <div className="composer-caption">
+              The catalogue informs relevant answers. File edits and commands
+              require your permission.
+              {thread && (
+                <button
+                  onClick={() => void send(true)}
+                  disabled={busy || executing}
                 >
-                  Confirm your application profile and select a cluster to start
-                  adaptation.
-                </Alert>
-              ) : (
-                stage === 2 &&
-                project &&
-                edit &&
-                source && (
-                  <>
-                    <div className="action-layout">
-                      <Paper
-                        className="panel action-nav"
-                        sx={{ p: "12px!important", alignSelf: "start" }}
-                      >
-                        {project.recommendations.map((r, i) => (
-                          (()=>{const a=catalogueClusters.flatMap(c=>c.actions).find(a=>a.id===r.sourceActionId);const c=(a?.category||"Action").toLowerCase();return (
-                          <Button
-                            key={r.sourceActionId}
-                            fullWidth
-                            sx={{
-                              justifyContent: "space-between",
-                              py: 1.5,
-                              mb: 0.5,
-                              bgcolor: index === i ? "#e8f0fe" : undefined,
-                              color:
-                                index === i ? "primary.main" : "text.secondary",
-                            }}
-                            onClick={() => {
-                              if (discard()) setIndex(i);
-                            }}
-                            disabled={busy}
-                          >
-                            <span>{r.sourceActionId}<br/>{c.charAt(0).toUpperCase()+c.slice(1)}</span>
-                            <span>
-                              {["accepted", "edited"].includes(
-                                project.recommendations[i]?.reviewStatus,
-                              )
-                                ? "✓"
-                                : i + 1}
-                            </span>
-                          </Button>);})()
-                        ))}
-                        <Divider sx={{ my: 1 }} />
-                        <Typography variant="caption" color="text.secondary">
-                          Use any category in any order.
-                        </Typography>
-                      </Paper>
-                      <div>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                          sx={{ mb: 2 }}
-                        >
-                          <Typography variant="h6">
-                            {source.id} · {source.category.charAt(0)+source.category.slice(1).toLowerCase()}
-                          </Typography>
-                          <Status value={edit.reviewStatus} />
-                        </Stack>
-                        <Alert severity={edit.applicability === "not_applicable" ? "warning" : "info"} sx={{mb:2}}>
-                          Phase suitability: {(edit.applicability||"suitable").replaceAll("_"," ")}. {edit.applicabilityReason||"Review suitability against your current lifecycle phases."}
-                        </Alert>
-                        <div className="two-col">
-                          <Paper className="panel source">
-                            <Typography
-                              variant="overline"
-                              color="text.secondary"
-                            >
-                              Original catalogue
-                            </Typography>
-                            <Typography fontWeight={600} sx={{ mt: 1, mb: 2 }}>
-                              {catalogueClusters.find(c=>c.actions.some(a=>a.id===source.id))?.title}
-                            </Typography>
-                            <Typography className="source-text">
-                              {source.text}
-                            </Typography>
-                            <div className="small-label">Possible evidence</div>
-                            <Typography className="source-text">
-                              {source.evidence}
-                            </Typography>
-                            <div className="small-label">Suggested phases</div>
-                            <Typography variant="body2">
-                              {source.phases.join(" · ")}
-                            </Typography>
-                            <div className="small-label">
-                              Suggested responsible roles
-                            </div>
-                            <Typography variant="body2">
-                              {source.roles.join(" · ")}
-                            </Typography>
-                            <Accordion
-                              sx={{
-                                mt: 3,
-                                bgcolor: "transparent",
-                                boxShadow: "none",
-                              }}
-                            >
-                              <AccordionSummary>
-                                Source details and references
-                              </AccordionSummary>
-                              <AccordionDetails>
-                                <Typography variant="caption">
-                                  Source cell: {source.source}
-                                </Typography>
-                                {source.referenceIds.map((id) => (
-                                  <Box sx={{ mt: 1.5 }} key={id}>
-                                    <Typography
-                                      fontWeight={600}
-                                      variant="caption"
-                                    >
-                                      {id}
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      {refs.find((r) => r.id === id)?.title ||
-                                        id}
-                                    </Typography>
-                                  </Box>
-                                ))}
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  display="block"
-                                  sx={{ mt: 2 }}
-                                >
-                                  A reference link records provenance; it does
-                                  not establish support for every adapted
-                                  detail.
-                                </Typography>
-                              </AccordionDetails>
-                            </Accordion>
-                          </Paper>
-                          <Paper className="panel">
-                            <Typography variant="overline" color="primary">
-                              Your application-specific adaptation
-                            </Typography>
-                            <Stack spacing={2.5} sx={{ mt: 2 }}>
-                              <TextField select label="Phase suitability" value={edit.applicability||"suitable"} onChange={e=>patch("applicability",e.target.value)}>
-                                <MenuItem value="suitable">Suitable for selected phases</MenuItem>
-                                <MenuItem value="not_applicable">Not applicable for selected phases</MenuItem>
-                                <MenuItem value="uncertain">Uncertain — needs information</MenuItem>
-                              </TextField>
-                              <TextField label="Phase suitability explanation" value={edit.applicabilityReason||""} multiline minRows={2} onChange={e=>patch("applicabilityReason",e.target.value)} helperText="Explain any change to the model's phase assessment before accepting."/>
-                              <TextField
-                                label="Concern scenario"
-                                value={edit.scenario}
-                                onChange={(e) =>
-                                  patch("scenario", e.target.value)
-                                }
-                                multiline
-                                minRows={2}
-                                helperText="Describe the behaviour, affected people and plausible adverse effect."
-                              />
-                              <TextField
-                                label="Adapted action"
-                                value={edit.action}
-                                onChange={(e) =>
-                                  patch("action", e.target.value)
-                                }
-                                multiline
-                                minRows={3}
-                              />
-                              <TextField
-                                label="Expected evidence"
-                                value={edit.evidence}
-                                onChange={(e) =>
-                                  patch("evidence", e.target.value)
-                                }
-                                multiline
-                                minRows={2}
-                              />
-                              <TextField
-                                label="Validation criterion"
-                                value={edit.criterion}
-                                onChange={(e) =>
-                                  patch("criterion", e.target.value)
-                                }
-                                multiline
-                                minRows={2}
-                                helperText="What would a human reviewer check? Leave blank to record an unresolved criterion."
-                              />
-                              <TextField
-                                label="Responsible owner"
-                                value={edit.owner}
-                                onChange={(e) => patch("owner", e.target.value)}
-                                placeholder="Unassigned"
-                                helperText="Map the suggested catalogue roles to your actual team."
-                              />
-                              <TextField
-                                label="Applicable phases"
-                                value={phaseText}
-                                onChange={(e) => setPhaseText(e.target.value)}
-                                helperText="Separate phase names with semicolons."
-                              />
-                              <TextField
-                                label="Adaptation rationale"
-                                value={edit.rationale}
-                                onChange={(e) =>
-                                  patch("rationale", e.target.value)
-                                }
-                                multiline
-                                minRows={2}
-                              />
-                              <TextField
-                                label="Review reason or unresolved question"
-                                value={edit.reason}
-                                onChange={(e) =>
-                                  patch("reason", e.target.value)
-                                }
-                                multiline
-                                minRows={2}
-                                helperText="A reason is required when rejecting an action."
-                              />
-                            </Stack>
-                          </Paper>
-                        </div>
-                        <Paper className="panel" sx={{ mt: 2 }}>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mb: 2 }}
-                          >
-                            Saving an edit leaves it Proposed. Acceptance
-                            records a planning decision; implementation remains
-                            Not started.
-                          </Typography>
-                          <div className="toolbar">
-                            <Button
-                              variant="outlined"
-                              disabled={busy || !actor.trim()}
-                              onClick={() => review("save")}
-                            >
-                              Save edit
-                            </Button>
-                            <Button
-                              variant="contained"
-                              disabled={busy || !actor.trim() || (edit.applicability !== undefined && edit.applicability !== "suitable")}
-                              onClick={() => review("accept")}
-                            >
-                              Accept
-                              {edit.action !== source.text ||
-                              edit.evidence !== source.evidence
-                                ? " edited version"
-                                : ""}
-                            </Button>
-                            <Button
-                              color="warning"
-                              disabled={busy || !actor.trim()}
-                              onClick={() => review("awaiting_information")}
-                            >
-                              Await information
-                            </Button>
-                            <Button
-                              color="error"
-                              disabled={busy || !actor.trim()}
-                              onClick={() => review("reject")}
-                            >
-                              Reject
-                            </Button>
-                            <Button sx={{ ml: "auto" }} onClick={() => go(3)}>
-                              Review project plan →
-                            </Button>
-                          </div>
-                          {dirty && (
-                            <Typography
-                              variant="caption"
-                              color="warning.main"
-                              sx={{ mt: 1, display: "block" }}
-                            >
-                              Unsaved changes
-                            </Typography>
-                          )}
-                        </Paper>
-                      </div>
-                    </div>
-                  </>
-                )
+                  Continue task
+                </button>
               )}
-              {stage === 3 && project && (
+            </div>
+          </div>
+        </div>
+      </section>
+      {panel && (
+        <aside className="context-panel">
+          <div className="context-header">
+            <strong>Project context</strong>
+            <button
+              className="icon-button"
+              aria-label="Close context"
+              onClick={() => setPanel(null)}
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+          <div className="context-tabs">
+            {(["files", "artifacts", "activity"] as const).map((p) => (
+              <button
+                className={panel === p ? "active" : ""}
+                key={p}
+                onClick={() => setPanel(p)}
+              >
+                {p.charAt(0).toUpperCase() + p.slice(1)}
+              </button>
+            ))}
+          </div>
+          {panel === "files" ? (
+            <div className="context-body">
+              {workspace ? (
                 <>
-                  <div className="summary-grid">
-                    {[
-                      [accepted, "Accepted in current draft"],
-                      [
-                        project.recommendations.filter(
-                          (r) => r.reviewStatus === "awaiting_information",
-                        ).length,
-                        "Awaiting information",
-                      ],
-                      [plans.length, "Approved plan versions"],
-                    ].map(([n, t]) => (
-                      <Paper key={String(t)} className="stat panel">
-                        <div className="stat-value">{n}</div>
-                        <Typography color="text.secondary" variant="body2">
-                          {t}
-                        </Typography>
-                      </Paper>
+                  <div className="folder-heading">
+                    <Icon name="folder" />
+                    <strong>{workspace.name}</strong>
+                  </div>
+                  <p className="context-description">{workspace.path}</p>
+                  <p className="context-description">
+                    Choose a file to read it and include its latest contents in
+                    the conversation. The assistant can request other files when
+                    needed.
+                  </p>
+                  {workspace.truncated && (
+                    <Alert severity="info">
+                      Folder index is limited to 2,000 files. Known relative
+                      paths can still be requested.
+                    </Alert>
+                  )}
+                  <div className="file-tree">
+                    {workspace.tree.map((path) => (
+                      <button
+                        key={path}
+                        className={paths.includes(path) ? "included" : ""}
+                        onClick={() => void openFile(path)}
+                      >
+                        <Icon name="files" size={14} />
+                        <span>{path}</span>
+                        {paths.includes(path) && (
+                          <Icon name="check" size={12} />
+                        )}
+                      </button>
                     ))}
                   </div>
-                  <Paper className="panel">
-                    <div
-                      className="toolbar"
-                      style={{ justifyContent: "space-between" }}
-                    >
-                      <TextField
-                        select
-                        SelectProps={{ displayEmpty: true }}
-                        InputLabelProps={{ shrink: true }}
-                        label="Plan version"
-                        value={planId}
-                        onChange={(e) => selectPlan(e.target.value)}
-                        sx={{ minWidth: 240 }}
-                      >
-                        <MenuItem value="">Current draft</MenuItem>
-                        {plans.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>
-                            Approved version {p.version}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      <div className="toolbar">
-                        <Button
-                          onClick={() =>
-                            work(async () =>
-                              setHistory(await api<Event[]>(base + "/history")),
-                            )
-                          }
-                        >
-                          Decision history
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          component="a"
-                          download
-                          href={busy ? undefined : base + "/export?format=json" + (planId ? "&plan=" + planId : "")}
-                          disabled={busy}
-                        >
-                          Export JSON
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          component="a"
-                          download
-                          href={busy ? undefined : base + "/export?format=html" + (planId ? "&plan=" + planId : "")}
-                          disabled={busy}
-                        >
-                          Export report
-                        </Button>
-                        <Button
-                          variant="contained"
-                          disabled={
-                            busy ||
-                            !actor.trim() ||
-                            !project.profile.confirmed ||
-                            accepted === 0 ||
-                            project.selectedClusters.length === 0
-                          }
-                          onClick={() =>
-                            work(async () => {
-                              setApproval(
-                                await api<Plan>(base + "/approval-preview"),
-                              );
-                              setApprovalKey(crypto.randomUUID());
-                            })
-                          }
-                        >
-                          Approve plan version
-                        </Button>
-                      </div>
-                    </div>
-                    <Alert
-                      severity={planId ? "success" : "info"}
-                      sx={{ mt: 3 }}
-                    >
-                      {planId
-                        ? "Approved snapshot. Later edits will not change this version."
-                        : "Draft plan. Only accepted recommendations will enter an approved version."}{" "}
-                      Implementation remains Not started.
-                    </Alert>
-                    {viewPlan?.reasoning && <Alert severity="info" sx={{mt:2}}>
-                      LLM-assisted proposal: {viewPlan.reasoning.provider} / {viewPlan.reasoning.model}. Actions and label characteristics remain subject to your review.
-                    </Alert>}
-                    {viewPlan?.reasoning?.output.clusters.map(c=><Box key={c.clusterId} sx={{mt:2}}><Typography fontWeight={600}>{c.clusterId} · Selected ethics label characteristics</Typography>{c.mappings.map((m,i)=><Typography variant="body2" key={i}>{m.card} → {m.characteristic}</Typography>)}</Box>)}
-                    {viewPlan && (
-                      <Accordion
-                        defaultExpanded
-                        sx={{
-                          mt: 2,
-                          boxShadow: "none",
-                          border: "1px solid #e3e7ed",
-                        }}
-                      >
-                        <AccordionSummary>
-                          Gaps and unresolved work ({viewPlan.gaps.length})
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <ul className="gaps">
-                            {viewPlan.gaps.map((g, i) => (
-                              <li key={i}>
-                                <Typography variant="body2">{g}</Typography>
-                              </li>
-                            ))}
-                          </ul>
-                          {viewPlan.excludedActionIds.length > 0 && (
-                            <Typography variant="body2">
-                              Excluded actions:{" "}
-                              {viewPlan.excludedActionIds.join(", ")}
-                            </Typography>
-                          )}
-                        </AccordionDetails>
-                      </Accordion>
-                    )}
-                    <div className="toolbar" style={{ marginTop: 24 }}>
-                      <TextField
-                        select
-                        label="Review status"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        sx={{ width: 195 }}
-                      >
-                        <MenuItem value="all">All statuses</MenuItem>
-                        {Object.entries(reviewLabels).map(([id, label]) => (
-                          <MenuItem key={id} value={id}>
-                            {label}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      <TextField
-                        label="Filter owner"
-                        value={ownerFilter}
-                        onChange={(e) => setOwnerFilter(e.target.value)}
-                      />
-                      <TextField
-                        label="Filter phase"
-                        value={phaseFilter}
-                        onChange={(e) => setPhaseFilter(e.target.value)}
-                      />
-                    </div>
-                    <div className="review-table">
-                      <Table sx={{ mt: 2, minWidth: 750 }}>
-                        <TableHead>
-                          <TableRow>
-                            {[
-                              "Action",
-                              "Adaptation",
-                              "Owner / phases",
-                              "Review / implementation",
-                            ].map((h) => (
-                              <TableCell key={h}>{h}</TableCell>
-                            ))}
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {(viewPlan?.entries || [])
-                            .filter(
-                              (e) =>
-                                (statusFilter === "all" ||
-                                  e.recommendation.reviewStatus ===
-                                    statusFilter) &&
-                                (e.recommendation.owner || "Unassigned")
-                                  .toLowerCase()
-                                  .includes(ownerFilter.toLowerCase()) &&
-                                e.recommendation.phases
-                                  .join(" ")
-                                  .toLowerCase()
-                                  .includes(phaseFilter.toLowerCase()),
-                            )
-                            .map(({ recommendation: r, source: s }) => (
-                              <TableRow key={s.id}>
-                                <TableCell>
-                                  <Typography fontWeight={600}>
-                                    {s.category.charAt(0) +
-                                      s.category.slice(1).toLowerCase()}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    {s.id}
-                                  </Typography>
-                                  {!planId && (
-                                    <Button
-                                      size="small"
-                                      onClick={() => {
-                                        if (discard()) {
-                                          setIndex(
-                                            project.recommendations.findIndex(
-                                              (a) => a.sourceActionId === s.id,
-                                            ),
-                                          );
-                                          setStage(2);
-                                        }
-                                      }}
-                                    >
-                                      Edit
-                                    </Button>
-                                  )}
-                                </TableCell>
-                                <TableCell sx={{ maxWidth: 420 }}>
-                                  {r.action}
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    display="block"
-                                    sx={{ mt: 1 }}
-                                  >
-                                    Evidence: {r.evidence}
-                                  </Typography>
-                                </TableCell>
-                                <TableCell>
-                                  {r.owner || "Unassigned"}
-                                  <Typography
-                                    variant="caption"
-                                    display="block"
-                                    color="text.secondary"
-                                  >
-                                    {r.phases.join(", ")}
-                                  </Typography>
-                                </TableCell>
-                                <TableCell>
-                                  <Status value={r.reviewStatus} />
-                                  <Typography
-                                    variant="caption"
-                                    display="block"
-                                    sx={{ mt: 1 }}
-                                  >
-                                    Not started
-                                  </Typography>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                    {viewPlan?.entries.length === 0 && (
-                      <Typography sx={{ py: 3 }} color="text.secondary">
-                        No selected recommendations in this plan. Confirm the
-                        profile and select a cluster to continue.
-                      </Typography>
-                    )}
-                  </Paper>
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      if (native && projectId)
+                        void native.unlinkFolder(projectId).then(() => {
+                          setWorkspace(null);
+                          setPaths([]);
+                        });
+                    }}
+                  >
+                    Unlink folder
+                  </button>
                 </>
+              ) : (
+                <div className="empty-context">
+                  <Icon name="folder" size={32} />
+                  <h3>Work with your project</h3>
+                  <p>
+                    Link a local folder to read current files and review
+                    proposed changes.
+                  </p>
+                  <button onClick={linkFolder}>Link folder</button>
+                  {!native && (
+                    <small>
+                      Live folder access is available in the desktop app. Run
+                      ./scripts/desktop.sh.
+                    </small>
+                  )}
+                </div>
               )}
-            </>
+            </div>
+          ) : panel === "artifacts" ? (
+            <div className="context-body">
+              {artifacts.length ? (
+                artifacts.map((a, i) => (
+                  <button
+                    className="artifact-card"
+                    key={i}
+                    onClick={() => download(a)}
+                  >
+                    <Icon name="files" />
+                    <span>
+                      <strong>{a.name}</strong>
+                      <small>Download</small>
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="context-description">
+                  Documents and other generated artefacts will appear here.
+                </p>
+              )}
+              {thread && (
+                <a
+                  className="export-link"
+                  href={"/api/assistant/threads/" + thread.id + "/export"}
+                  download
+                >
+                  <Icon name="download" />
+                  Export conversation
+                </a>
+              )}
+            </div>
+          ) : (
+            <div className="context-body">
+              {thread?.receipts.length ? (
+                thread.receipts.map((r) => (
+                  <details key={r.id} className="activity-item">
+                    <summary>
+                      {r.status} · {r.summary}
+                    </summary>
+                    <pre>{r.output}</pre>
+                  </details>
+                ))
+              ) : (
+                <p className="context-description">
+                  Approved changes, command results and declined operations will
+                  appear here.
+                </p>
+              )}
+            </div>
           )}
-        </main>
-      </div>
+        </aside>
+      )}
       <Dialog
-        open={newOpen}
-        onClose={() => !busy && setNewOpen(false)}
+        open={settings}
+        onClose={() => setSettings(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Model connection</DialogTitle>
+        <DialogContent>
+          <p className="settings-intro">
+            Choose your assistant once. You can change it whenever you need.
+          </p>
+          <div className="settings-fields">
+            <TextField
+              select
+              label="Provider"
+              value={providers.length ? provider : ""}
+              onChange={(e) => {
+                setProvider(e.target.value);
+                setModels([]);
+                setModel("");
+              }}
+            >
+              {providers.map((p) => (
+                <MenuItem key={p.id} value={p.id}>
+                  {p.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Model ID"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="Choose or enter an available model"
+              inputProps={{ list: "model-options" }}
+            />
+            <datalist id="model-options">
+              {models.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+            <Button
+              onClick={loadModels}
+              disabled={!currentProvider?.configured}
+            >
+              Load available models
+            </Button>
+          </div>
+          {currentProvider && !currentProvider.configured && (
+            <Alert severity="info">
+              {currentProvider.setup} Keys stay on the backend; they are never
+              stored in the conversation.
+            </Alert>
+          )}
+          {currentProvider?.id === "ollama" && (
+            <Alert severity="info">
+              Start Ollama and install a model first. Use a vision model for
+              image attachments.
+            </Alert>
+          )}
+          <label className="model-consent">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                void ensureProject()
+                  .then((id) =>
+                    setConsents((v) => ({
+                      ...v,
+                      [id + ":" + provider]: checked,
+                    })),
+                  )
+                  .catch((e) => setError(e.message));
+              }}
+            />
+            <span>
+              {currentProvider?.external
+                ? "Allow this provider to process messages, attached material, shared project files and approved command output for this project."
+                : "Allow the configured local model server to process this project’s conversation and shared context."}
+            </span>
+          </label>
+          <p className="settings-note">
+            OpenAI/Claude use API credentials configured in the local .env. A
+            consumer chat subscription is not an API key. See
+            docs/CONVERSATIONAL_WORKSPACE.md.
+          </p>
+          <a href="/?legacy=1" className="legacy-link">
+            Open the earlier structured workflow
+          </a>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSettings(false)}>Done</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={newProject}
+        onClose={() => setNewProject(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Create a project</DialogTitle>
+        <DialogContent>
+          <p>
+            Give your conversations a home. You can link a folder now or later.
+          </p>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Project name"
+            placeholder="New project"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewProject(false)}>Cancel</Button>
+          <Button onClick={() => void createProject(false)}>Create</Button>
+          {native && (
+            <Button
+              variant="contained"
+              onClick={() => void createProject(true)}
+            >
+              Create and link folder
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={!!fileView}
+        onClose={() => setFileView(null)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>{fileView?.path}</DialogTitle>
+        <DialogContent>
+          <p className="settings-note">
+            Current contents · Included in the next message’s context
+          </p>
+          <pre className="file-preview">{fileView?.text}</pre>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              if (fileView)
+                setPaths((v) => v.filter((p) => p !== fileView.path));
+              setFileView(null);
+            }}
+          >
+            Remove from context
+          </Button>
+          <Button onClick={() => setFileView(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={!!citation}
+        onClose={() => setCitation(null)}
         fullWidth
         maxWidth="sm"
       >
         <DialogTitle>
-          {isExample
-            ? "Start with a support-ticket example"
-            : "Create a project"}
+          {citation?.clusterId} · {citationSource?.title || "Catalogue context"}
         </DialogTitle>
         <DialogContent>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            The project will use the current imported catalogue. The tool
-            manages its version automatically.
-          </Typography>
-          <Stack spacing={3}>
-            <TextField
-              autoFocus
-              label="Project name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Your reviewer name"
-              value={actor}
-              onChange={(e) => setActor(e.target.value)}
-              helperText="Self-reported name used in the local decision history."
-              fullWidth
-            />
-            {isExample && (
-              <Alert severity="info">
-                The example includes explicit unknowns for retention, sharing
-                and safeguards. Review it before confirmation.
-              </Alert>
-            )}
-          </Stack>
+          <p>{citationSource?.definition}</p>
+          <p>{citation?.rationale}</p>
+          <p className="settings-note">
+            Source actions:{" "}
+            {citation?.actionIds.join(", ") || "Cluster-level guidance"}
+          </p>
+          <p className="settings-note">
+            The catalogue supports this reasoning; it does not certify
+            compliance or correctness.
+          </p>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNewOpen(false)} disabled={busy}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            disabled={busy || !newName.trim() || !actor.trim()}
-            onClick={create}
-          >
-            Create project
-          </Button>
+          <Button onClick={() => setCitation(null)}>Close</Button>
         </DialogActions>
       </Dialog>
       <Dialog
-        open={!!details}
-        onClose={() => setDetails(null)}
+        open={!!preview}
+        onClose={() => !executing && setPreview(null)}
         fullWidth
-        maxWidth="md"
+        maxWidth="lg"
       >
         <DialogTitle>
-          {details?.id} · {details?.title}
+          {preview?.value.kind === "write"
+            ? "Review proposed file change"
+            : "Review proposed command"}
         </DialogTitle>
         <DialogContent>
-          {details && (
+          {preview && (
             <>
-              <Typography sx={{ mb: 2 }}>{details.definition}</Typography>
-              <Typography fontWeight={600}>Scope and boundaries</Typography>
-              <Typography sx={{ my: 1 }}>
-                {details.boundaries || "No boundary notes supplied."}
-              </Typography>
-              <Typography color="text.secondary" sx={{ my: 2 }}>
-                {details.semanticRationale}
-              </Typography>
-              <Typography fontWeight={600}>Ethics label mappings</Typography>
-              {details.labelMappings.map((m, i) => (
-                <Typography key={i} variant="body2" sx={{ my: 1 }}>
-                  {m.card} → {m.characteristic}
-                </Typography>
-              ))}
-              <Divider sx={{ my: 2 }} />
-              <Typography fontWeight={600}>Six source actions</Typography>
-              {details.actions.map((a) => (
-                <Accordion key={a.id} sx={{ boxShadow: "none" }}>
-                  <AccordionSummary>
-                    {a.category.charAt(0) + a.category.slice(1).toLowerCase()} ·{" "}
-                    {a.id}
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Typography>{a.text}</Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mt: 1 }}
-                    >
-                      Evidence: {a.evidence}
-                    </Typography>
-                    <Typography variant="caption">
-                      References: {a.referenceIds.join(", ")} · Source:{" "}
-                      {a.source}
-                    </Typography>
-                  </AccordionDetails>
-                </Accordion>
-              ))}
+              <p>{preview.operation.reason}</p>
+              {preview.value.kind === "write" ? (
+                <>
+                  <strong>{preview.value.path}</strong>
+                  <div className="change-preview">
+                    <div>
+                      <h4>Before</h4>
+                      <pre>{preview.value.before || "(new file)"}</pre>
+                    </div>
+                    <div>
+                      <h4>After</h4>
+                      <pre>{preview.value.after}</pre>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <pre className="command-preview">
+                    {preview.value.program} {JSON.stringify(preview.value.args)}
+                    {"\n"}Working directory: {preview.value.cwd}
+                  </pre>
+                  <Alert severity="warning">
+                    This command runs with your user permissions. It may access
+                    resources outside the project and use the network. Output
+                    can enter the conversation’s model context.
+                  </Alert>
+                  {liveOutput && (
+                    <pre className="command-output">{liveOutput}</pre>
+                  )}
+                </>
+              )}
+              <p className="settings-note">
+                The desktop app will ask for native confirmation of this exact
+                operation. This permission applies once.
+              </p>
             </>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetails(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        open={history !== null}
-        onClose={() => setHistory(null)}
-        fullWidth
-        maxWidth="md"
-      >
-        <DialogTitle>Decision history</DialogTitle>
-        <DialogContent>
-          {history?.map((e) => (
-            <div key={e.id} className="history-item">
-              <Typography fontWeight={600}>
-                {e.operation.replaceAll("_", " ")}
-                {e.sourceActionId ? " · " + e.sourceActionId : ""}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {e.actor} · {new Date(e.at).toLocaleString("en-GB")}
-              </Typography>
-              {e.reason && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {e.reason}
-                </Typography>
-              )}
-              <Accordion sx={{ boxShadow: "none" }}>
-                <AccordionSummary>Before and after</AccordionSummary>
-                <AccordionDetails>
-                  <Typography variant="caption">Before</Typography>
-                  <pre>{JSON.stringify(e.before, null, 2)}</pre>
-                  <Typography variant="caption">After</Typography>
-                  <pre>{JSON.stringify(e.after, null, 2)}</pre>
-                </AccordionDetails>
-              </Accordion>
-            </div>
-          ))}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setHistory(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        open={!!approval}
-        onClose={() => !busy && setApproval(null)}
-        fullWidth
-        maxWidth="md"
-      >
-        <DialogTitle>Approve a plan version</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Approval creates an immutable snapshot of accepted recommendations.
-            Rejected, proposed and awaiting-information entries stay in history.
-          </Typography>
-          <Alert severity="warning" sx={{ my: 2 }}>
-            This plan can be approved with explicit gaps. Approval does not
-            confirm implementation or compliance.
-          </Alert>
-          <Typography fontWeight={600}>
-            Included:{" "}
-            {approval?.entries
-              .filter((e) =>
-                ["accepted", "edited"].includes(e.recommendation.reviewStatus),
-              )
-              .map((e) => e.source.id)
-              .join(", ") || "None"}
-          </Typography>
-          <Typography sx={{ mt: 2 }}>
-            Omitted: {approval?.excludedActionIds.join(", ") || "None"}
-          </Typography>
-          <ul className="gaps">
-            {approval?.gaps.map((g, i) => (
-              <li key={i}>{g}</li>
-            ))}
-          </ul>
-          <Typography variant="body2">Approving as: {actor}</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setApproval(null)} disabled={busy}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={approve} disabled={busy}>
-            Approve with recorded gaps
-          </Button>
+          {executing ? (
+            <Button
+              onClick={() =>
+                preview && native?.stopCommand(preview.value.ticket)
+              }
+            >
+              Stop command
+            </Button>
+          ) : (
+            <>
+              <Button
+                onClick={() =>
+                  preview && void deny(preview.message, preview.operation)
+                }
+              >
+                Decline
+              </Button>
+              <Button onClick={() => setPreview(null)}>Close</Button>
+              <Button variant="contained" onClick={() => void approve()}>
+                Request permission and{" "}
+                {preview?.value.kind === "write" ? "apply" : "run"}
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
       <Snackbar
         open={!!notice}
-        autoHideDuration={5000}
-        onClose={() => setNotice("")}
         message={notice}
+        autoHideDuration={7000}
+        onClose={() => setNotice("")}
       />
     </div>
   );

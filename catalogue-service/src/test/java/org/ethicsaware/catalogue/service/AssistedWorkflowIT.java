@@ -174,6 +174,14 @@ class AssistedWorkflowIT {
         }
         assertThat(files.upload(p.id(),"purpose",new MockMultipartFile("file","requirements.pdf","application/pdf",pdfBytes)).text()).contains("support tickets");
         assertThat(files.upload(p.id(),"company_ethics",new MockMultipartFile("file","rules.docx","application/octet-stream",docBytes)).text()).contains("human oversight");
+        try(var workbook=new org.apache.poi.xssf.usermodel.XSSFWorkbook();var out=new ByteArrayOutputStream()) {
+            var row=workbook.createSheet("Requirements").createRow(0);row.createCell(0).setCellValue("Human review");row.createCell(1).setCellFormula("1+1");workbook.write(out);
+            assertThat(files.upload(p.id(),"additional",new MockMultipartFile("file","requirements.xlsx","application/octet-stream",out.toByteArray())).text()).contains("Human review","Formula (not recalculated): 1+1");
+        }
+        try(var presentation=new org.apache.poi.xslf.usermodel.XMLSlideShow();var out=new ByteArrayOutputStream()) {
+            presentation.createSlide().createTextBox().setText("Human oversight architecture");presentation.write(out);
+            assertThat(files.upload(p.id(),"additional",new MockMultipartFile("file","design.pptx","application/octet-stream",out.toByteArray())).text()).contains("Human oversight architecture");
+        }
         var truncated=files.upload(p.id(),"additional",new MockMultipartFile("file","long.md","text/plain","x".repeat(50001).getBytes(StandardCharsets.UTF_8)));
         assertThat(truncated.text()).hasSize(50000);assertThat(truncated.extraction()).contains("truncated");
         assertThatThrownBy(()->files.upload(p.id(),"additional",new MockMultipartFile("file","fake.pdf","application/pdf",new byte[]{1,2}))).isInstanceOf(ResponseStatusException.class);

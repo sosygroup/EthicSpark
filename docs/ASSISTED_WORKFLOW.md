@@ -1,4 +1,6 @@
-# Profile material and assisted catalogue workflow
+# Earlier profile material and assisted catalogue workflow
+
+This guide documents the structured interface retained at `/?legacy=1`. The primary interface is now the [conversational workspace](CONVERSATIONAL_WORKSPACE.md).
 
 This increment extends the local English workspace to all 24 catalogue clusters and adds OpenAI, Anthropic Claude and Ollama adapters. Manual selection and adaptation remain available without any model credentials.
 

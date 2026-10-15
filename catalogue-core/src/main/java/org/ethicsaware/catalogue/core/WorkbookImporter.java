@@ -39,6 +39,7 @@ public final class WorkbookImporter {
                     String value = cell.getCellType() == CellType.STRING ? cell.getStringCellValue()
                             : new DataFormatter(Locale.ROOT).formatCellValue(cell);
                     raw.put(source(sheet, row.getRowNum(), cell.getColumnIndex()), new RawCell(cell.getCellType().name(), value));
+                    if (value.contains("\\n")) issue(issues, Severity.INFO, "ESCAPED_LINE_BREAK", source(sheet, row.getRowNum(), cell.getColumnIndex()), "Escaped line break normalised in catalogue text; raw source retained.");
                     if (cell.getCellType() == CellType.FORMULA || cell.getCellType() == CellType.ERROR)
                         issue(issues, Severity.ERROR, "UNSUPPORTED_CELL", source(sheet, row.getRowNum(), cell.getColumnIndex()), "Formula or error cells require a source review; no evaluation was performed.");
                 }
@@ -93,7 +94,8 @@ public final class WorkbookImporter {
             boolean allPhases = phaseText.equalsIgnoreCase("All SDLC phases");
             List<String> phases = allPhases ? List.of() : phases(phaseText, source(s, r, 5), issues);
             String roles = required(s, raw, r, 6, issues);
-            if (roles.contains(",")) issue(issues, Severity.WARNING, "AMBIGUOUS_ROLE_DELIMITER", source(s, r, 6), "Comma-containing role text retained as a single semicolon-delimited item; review before publication.");
+            if (roles.contains(",") && roles.contains(";")) issue(issues, Severity.WARNING, "AMBIGUOUS_ROLE_DELIMITER", source(s, r, 6), "Comma-containing role text retained within semicolon-delimited items; review before publication.");
+            else if(roles.contains(",")) issue(issues, Severity.INFO, "ROLE_DELIMITER", source(s,r,6), "Parsed comma-separated roles from the updated source; raw text retained.");
             actions.add(new Action(actionId, category, required(s, raw, r, 2, issues),
                     list(required(s, raw, r, 3, issues), ";"), required(s, raw, r, 4, issues), phases, allPhases,
                     list(roles, ";"), refs(required(s, raw, r, 7, issues), source(s, r, 7), issues),
@@ -181,7 +183,7 @@ public final class WorkbookImporter {
         return ids;
     }
 
-    private List<String> list(String raw, String separator) { return Arrays.stream(raw.split(separator)).map(String::strip).filter(v -> !v.isBlank()).toList(); }
+    private List<String> list(String raw, String separator) { return Arrays.stream(raw.split(separator.equals(";") && !raw.contains(";") ? "," : separator)).map(String::strip).filter(v -> !v.isBlank()).toList(); }
     private int header(Sheet s, Map<String, RawCell> raw, int col, String label, List<Issue> issues) {
         List<Integer> found = IntStream.rangeClosed(0, s.getLastRowNum()).filter(r -> text(s, raw, r, col).equals(label)).boxed().toList();
         if (found.size() == 1) return found.getFirst();
@@ -199,7 +201,7 @@ public final class WorkbookImporter {
     }
     private String text(Sheet s, Map<String, RawCell> raw, int r, int c) {
         RawCell cell = raw.get(source(s, r, c));
-        return cell == null ? "" : cell.value().strip();
+        return cell == null ? "" : cell.value().replace("\\n", "\n").strip();
     }
     private static String source(Sheet s, int r, int c) { return s.getSheetName() + "!" + CellReference.convertNumToColString(c) + (r + 1); }
     private static void issue(List<Issue> issues, Severity severity, String code, String source, String message) { issues.add(new Issue(severity, code, source, message)); }

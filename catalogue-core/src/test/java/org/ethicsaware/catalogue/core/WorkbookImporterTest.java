@@ -61,6 +61,15 @@ class WorkbookImporterTest {
         assertThat(r.report().issues()).anyMatch(i -> i.code().equals("PHASE_ALIAS"));
     }
 
+    @Test void readsUpdatedCommaListsAndEscapedLineBreaksWithoutChangingRawEvidence() throws Exception {
+        var result=original();var c=result.catalogue().clusters().getFirst();
+        assertThat(c.actions().getFirst().roles()).containsExactly("Product/Service Owner","Privacy or Data Owner","Architecture/Engineering");
+        assertThat(c.actions().getFirst().phases()).containsExactly("Requirements","Design");
+        assertThat(c.labelMappings()).allMatch(m->!m.characteristic().contains("\\n"));
+        assertThat(result.catalogue().sourceCells().get("C01!F28").value()).isEqualTo("Requirement, Design");
+        assertThat(result.report().issues()).anyMatch(i->i.code().equals("ROLE_DELIMITER")).anyMatch(i->i.code().equals("PHASE_ALIAS"));
+    }
+
     @Test void blocksDuplicateActionIds() throws Exception {
         hasError(changed(w -> w.getSheet("C01").getRow(28).getCell(0).setCellValue("C01-A1")), "DUPLICATE_C-01_ACTIONS");
     }

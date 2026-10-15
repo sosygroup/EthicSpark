@@ -59,7 +59,34 @@ public class AttachmentService {
             } else if(lower.endsWith(".docx")) {
                 type="application/vnd.openxmlformats-officedocument.wordprocessingml.document";
                 try(var doc=new XWPFDocument(new ByteArrayInputStream(bytes));var extractor=new XWPFWordExtractor(doc)) { text=extractor.getText(); }
-            } else if(lower.matches(".*\\.(txt|md|csv|json|xml|yaml|yml|log|java|ts|js|html|sql|puml|mmd)$")) {
+            } else if(lower.endsWith(".xlsx")||lower.endsWith(".xls")) {
+                type=lower.endsWith(".xlsx")?"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":"application/vnd.ms-excel";
+                try(var workbook=org.apache.poi.ss.usermodel.WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
+                    StringBuilder extracted=new StringBuilder();var formatter=new org.apache.poi.ss.usermodel.DataFormatter(Locale.ROOT);int cells=0;
+                    for(var sheet:workbook) {
+                        extracted.append("Worksheet: ").append(sheet.getSheetName()).append('\n');
+                        for(var row:sheet) for(var cell:row) {
+                            if(++cells>20000) throw bad(HttpStatus.BAD_REQUEST,"Spreadsheets must contain at most 20,000 populated cells.");
+                            extracted.append(cell.getAddress()).append(": ").append(cell.getCellType()==org.apache.poi.ss.usermodel.CellType.FORMULA?"Formula (not recalculated): "+cell.getCellFormula():formatter.formatCellValue(cell)).append('\n');
+                        }
+                    }
+                    text=extracted.toString();
+                }
+            } else if(lower.endsWith(".pptx")) {
+                type="application/vnd.openxmlformats-officedocument.presentationml.presentation";
+                try(var slides=new org.apache.poi.xslf.usermodel.XMLSlideShow(new ByteArrayInputStream(bytes))) {
+                    if(slides.getSlides().size()>200) throw bad(HttpStatus.BAD_REQUEST,"Presentations must contain at most 200 slides.");
+                    StringBuilder extracted=new StringBuilder();int number=0;
+                    for(var slide:slides.getSlides()) {
+                        extracted.append("Slide ").append(++number).append('\n');
+                        for(var shape:slide.getShapes()) {
+                            if(shape instanceof org.apache.poi.xslf.usermodel.XSLFTextShape block) extracted.append(block.getText()).append('\n');
+                            if(shape instanceof org.apache.poi.xslf.usermodel.XSLFTable table) for(var row:table.getRows()) for(var cell:row.getCells()) extracted.append(cell.getText()).append('\n');
+                        }
+                    }
+                    text=extracted.toString();
+                }
+            } else if(lower.matches(".*\\.(txt|md|csv|json|xml|yaml|yml|log|java|ts|tsx|js|jsx|html|sql|puml|mmd|py|cs|go|rs|c|cpp|h|kt|rb|sh|properties|gradle|toml|ini|svg)$")) {
                 text=StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString();
                 if(text.indexOf('\0')>=0) throw bad(HttpStatus.BAD_REQUEST,"Text attachments must contain UTF-8 text, without binary content.");
                 type="text/plain";
@@ -74,7 +101,7 @@ public class AttachmentService {
             if(!type.equals("application/octet-stream") && !type.startsWith("image/")) extraction=text.isBlank()?"No text extracted: scanned or empty document; OCR is not available.":"Text extracted.";
             if(text.length()>50000) { text=text.substring(0,50000); extraction="Text truncated to 50,000 characters; remaining content is not sent to the model."; }
         } catch(ResponseStatusException e) { throw e; }
-        catch(Exception e) { throw bad(HttpStatus.BAD_REQUEST,"The file could not be read. Use a valid, unencrypted PDF/DOCX or UTF-8 text file."); }
+        catch(Exception e) { throw bad(HttpStatus.BAD_REQUEST,"The file could not be read. Use a valid, unencrypted PDF, Office document or UTF-8 text file."); }
         Attachment a=new Attachment(UUID.randomUUID(),field,name,type,bytes.length,WorkbookImporter.sha256(bytes),text,extraction,Instant.now());
         db.update("INSERT INTO profile_attachment(id,project_id,field_id,document,content) VALUES (?,?,?,CAST(? AS jsonb),?)",a.id(),project,field,json.writeValueAsString(a),bytes);
         return a;

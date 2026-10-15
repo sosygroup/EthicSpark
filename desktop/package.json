@@ -1,0 +1,9 @@
+{
+  "name": "ethicspark-desktop",
+  "version": "0.3.0",
+  "private": true,
+  "description": "EthicSpark desktop workspace and permission-controlled local project agent",
+  "main": "main.cjs",
+  "scripts": { "start": "electron .", "test": "node --test test/*.test.cjs" },
+  "devDependencies": { "electron": "44.7.2" }
+}

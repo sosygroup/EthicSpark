@@ -6,7 +6,7 @@ import java.util.Map;
 /** Imported catalogue content. Raw cells retain exact text and worksheet coordinates. */
 public record Catalogue(String sourceSha256, String importerVersion, List<Cluster> clusters,
                         List<Reference> references, Map<String, RawCell> sourceCells) {
-    public static final String IMPORTER_VERSION = "1";
+    public static final String IMPORTER_VERSION = "2";
 
     public enum Category { KNOW, PROTECT, INFORM, ASSESS, VALIDATE, RESPOND }
     public enum Severity { ERROR, WARNING, INFO }
