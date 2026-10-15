@@ -1,0 +1,13 @@
+name: Catalogue foundation
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test against PostgreSQL using Java 25
+        run: ./scripts/test.sh
+      - name: Build runtime image
+        run: docker build -t ethics-catalogue:ci .

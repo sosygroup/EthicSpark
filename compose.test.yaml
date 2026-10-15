@@ -1,0 +1,29 @@
+name: ethics-catalogue-test
+services:
+  database:
+    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    environment:
+      POSTGRES_DB: catalogue_test
+      POSTGRES_USER: catalogue_test
+      POSTGRES_PASSWORD: isolated-test-password
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalogue_test -d catalogue_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  tests:
+    build:
+      context: .
+      target: build
+    image: ethics-catalogue-build:0.1.0
+    working_dir: /workspace
+    environment:
+      DB_URL: jdbc:postgresql://database:5432/catalogue_test
+      DB_USER: catalogue_test
+      DB_PASSWORD: isolated-test-password
+    command: ["mvn", "-B", "-ntp", "-Pintegration", "verify"]
+    depends_on:
+      database:
+        condition: service_healthy

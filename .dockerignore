@@ -1,0 +1,16 @@
+.git
+.env*
+.DS_Store
+**/target
+**/node_modules
+**/dist
+tmp
+output
+MY-INPUT
+*.dump
+*.sql.gz
+*.pem
+*.key
+*.p12
+*.pfx
+**/*.inspect.ndjson

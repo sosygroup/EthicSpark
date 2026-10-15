@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>org.ethicsaware</groupId><artifactId>ethics-catalogue</artifactId><version>0.1.0-SNAPSHOT</version></parent>
+  <artifactId>catalogue-web</artifactId>
+  <description>React and Material UI manual adaptation workspace</description>
+  <build>
+    <resources><resource><directory>${project.basedir}/dist</directory><targetPath>META-INF/resources</targetPath></resource></resources>
+    <plugins>
+      <plugin><groupId>com.github.eirslett</groupId><artifactId>frontend-maven-plugin</artifactId><version>1.15.4</version>
+        <configuration><installDirectory>${project.build.directory}</installDirectory><nodeVersion>v22.16.0</nodeVersion></configuration>
+        <executions>
+          <execution><id>node</id><phase>generate-resources</phase><goals><goal>install-node-and-npm</goal></goals></execution>
+          <execution><id>dependencies</id><phase>generate-resources</phase><goals><goal>npm</goal></goals><configuration><arguments>ci --no-audit --no-fund</arguments></configuration></execution>
+          <execution><id>frontend</id><phase>generate-resources</phase><goals><goal>npm</goal></goals><configuration><arguments>run build</arguments></configuration></execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

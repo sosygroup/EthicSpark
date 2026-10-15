@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: ethics-catalogue
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/ethics_catalogue}
+    username: ${DB_USER:catalogue}
+    password: ${DB_PASSWORD}
+  flyway:
+    enabled: true
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8082}
+  error:
+    include-stacktrace: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+catalogue:
+  import:
+    enabled: ${CATALOGUE_IMPORT_ENABLED:true}
+    path: ${CATALOGUE_PATH:data/catalogue-public.xlsx}
+    report: ${CATALOGUE_REPORT:tmp/import-report.json}

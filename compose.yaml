@@ -1,0 +1,35 @@
+name: ethics-catalogue
+services:
+  database:
+    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    environment:
+      POSTGRES_DB: ethics_catalogue
+      POSTGRES_USER: catalogue
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - catalogue-database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalogue -d ethics_catalogue"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  application:
+    build: .
+    image: ethics-catalogue:0.1.0
+    ports:
+      - "127.0.0.1:${APP_PORT:-8082}:8082"
+    environment:
+      SERVER_ADDRESS: 0.0.0.0
+      DB_URL: jdbc:postgresql://database:5432/ethics_catalogue
+      DB_USER: catalogue
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      CATALOGUE_PATH: /app/input/catalogue.xlsx
+      CATALOGUE_REPORT: /app/reports/import-report.json
+    volumes:
+      - catalogue-reports:/app/reports
+    depends_on:
+      database:
+        condition: service_healthy
+volumes:
+  catalogue-database:
+  catalogue-reports:

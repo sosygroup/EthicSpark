@@ -1,0 +1,21 @@
+# Catalogue data foundation architecture
+
+The current implementation is one Spring Boot application with a PostgreSQL database. The Maven reactor separates the core catalogue/import rules, service infrastructure and web resources. The service packages web resources into the executable jar.
+
+On startup, Flyway creates the schema, the importer reads the source XLSX bundled in the image, deterministic checks produce a report, and a transaction stores the complete immutable snapshot with the original workbook. Reference, cluster and action key tables enforce source membership and version-scoped relationships. The report is written before persistence, so rejected imports are inspectable. The application becomes ready only after startup import succeeds.
+
+Version IDs combine the complete workbook SHA-256 and importer version. A unique constraint makes repeat imports idempotent. A new importer contract must increment `Catalogue.IMPORTER_VERSION`; this permits re-importing identical source bytes under changed rules without replacing previous interpretations. Changing application code alone does not rewrite a stored snapshot.
+
+The JSONB document is the canonical imported representation, with cell-level provenance and all source associations. Relational tables index identities and relationships; they are written in the same transaction. There is no automatic publication: versions remain IMPORTED while warnings await human disposition. Database triggers reject update/delete operations on snapshots and key tables. Database administrators retain normal administrative powers.
+
+Read APIs require an explicit version ID. Cluster summaries support search; cluster/action details expose relationships, while references and source-cell APIs allow provenance inspection. Version metadata and import reports are accessible separately. The service does not fetch external reference URLs.
+
+The development Compose stack exposes only the application on host loopback. PostgreSQL has persistent storage and no default host port. An optional override exposes database port 5433 for host-JDK development. The isolated test stack has a different project name and ephemeral database storage.
+
+The web module now contains a React/TypeScript/Material UI application bundled by Vite during Maven generate-resources. Maven installs its own pinned Node runtime, performs npm ci using the tracked lockfile, checks TypeScript and packages the resulting assets in the executable service jar. The browser uses same-origin APIs and resolves catalogue version IDs automatically.
+
+Migration V2 adds a mutable project draft with optimistic revision control, immutable confirmed profile versions, immutable review events and immutable approved plans. Write operations lock the project row, compare the submitted revision and update within one transaction. Approval keys prevent duplicate snapshots when the same approval request is retried. Plans bind to their exact catalogue, profile, recommendation content and gaps. Exports serialise that snapshot and escape user text in HTML.
+
+Profile changes conservatively reopen all recommendation reviews because the manual increment does not claim field-level dependency precision. They never update approved versions. Manual recommendation edits cannot change the source ID or implementation state. Review categories remain independent of implementation validation.
+
+This increment supports manual C-01 adaptation and read-only inspection of the rest of the catalogue. Reviewer names are self-reported local labels. Authentication, project permissions, provider adapters, publication and human implementation-evidence validation remain subsequent increments.

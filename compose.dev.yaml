@@ -1,0 +1,5 @@
+# Optional host-JDK development: docker compose -f compose.yaml -f compose.dev.yaml up -d database
+services:
+  database:
+    ports:
+      - "127.0.0.1:5433:5432"

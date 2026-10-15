@@ -1,0 +1,1371 @@
+{
+  "sourceSha256": "3d97e021baf84d0580befccfdd49c696398c04ac75b0a380a35b176989cab757",
+  "importerVersion": "1",
+  "clusterCount": 24,
+  "actionCount": 144,
+  "referenceCount": 184,
+  "issues": [
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C02!F28",
+      "message": "Phase retained without semantic mapping: Governance"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C02!F33",
+      "message": "Phase retained without semantic mapping: Appeals/Redress"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C02!F33",
+      "message": "Phase retained without semantic mapping: Continuous Improvement"
+    },
+    {
+      "severity": "WARNING",
+      "code": "MISSING_BOUNDARY_NOTES",
+      "source": "C03!F5",
+      "message": "No boundary notes supplied; no interpretation was invented."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C04!F28",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C04!F29",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C04!G30",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C04!F31",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C04!F31",
+      "message": "Phase retained without semantic mapping: validation"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C05!G28",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C05!G31",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C05!G32",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C05!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C06!F29",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_ALIAS",
+      "source": "C06!F29",
+      "message": "Requirement -> Requirements"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C06!G29",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C06!F31",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C06!G31",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C06!F32",
+      "message": "Phase retained without semantic mapping: Monitoring"
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C06!F33",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C06!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C07!G29",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C07!F31",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_ALIAS",
+      "source": "C07!F31",
+      "message": "operations -> Operations"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C07!G31",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C07!F32",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_ALIAS",
+      "source": "C07!F32",
+      "message": "operations -> Operations"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C07!G32",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C07!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C08!F32",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C08!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C09!F32",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C10!F28",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C10!G28",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C10!G29",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C10!F31",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C10!G32",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C10!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C12!F28",
+      "message": "Phase retained without semantic mapping: Acquisition"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C12!F29",
+      "message": "Phase retained without semantic mapping: Build"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C12!F30",
+      "message": "Phase retained without semantic mapping: Distribution"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C13!G28",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C13!F29",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C13!F29",
+      "message": "Phase retained without semantic mapping: Deployment Planning"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C13!G29",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C13!F30",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C13!G30",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C13!F31",
+      "message": "Phase retained without semantic mapping: Pre-deployment"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C13!F32",
+      "message": "Phase retained without semantic mapping: Operations Review"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C13!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C14!F29",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C16!F28",
+      "message": "Phase retained without semantic mapping: Data Planning"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C16!F29",
+      "message": "Phase retained without semantic mapping: Data Engineering"
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_ALIAS",
+      "source": "C17!F30",
+      "message": "Operation -> Operations"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C17!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C18!F32",
+      "message": "Phase retained without semantic mapping: Audit"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C18!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C19!F28",
+      "message": "Phase retained without semantic mapping: Planning"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C19!F29",
+      "message": "Phase retained without semantic mapping: Planning"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C19!F29",
+      "message": "Phase retained without semantic mapping: Development"
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C19!F30",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C19!F30",
+      "message": "Phase retained without semantic mapping: Planning"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C19!F32",
+      "message": "Phase retained without semantic mapping: Audit"
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C19!G32",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "AMBIGUOUS_ROLE_DELIMITER",
+      "source": "C19!G33",
+      "message": "Comma-containing role text retained as a single semicolon-delimited item; review before publication."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_DELIMITER",
+      "source": "C20!F30",
+      "message": "Parsed comma and semicolon phase separators; original text retained."
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_ALIAS",
+      "source": "C21!F30",
+      "message": "Operation -> Operations"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C22!F28",
+      "message": "Phase retained without semantic mapping: Planning"
+    },
+    {
+      "severity": "INFO",
+      "code": "PHASE_ALIAS",
+      "source": "C22!F30",
+      "message": "Operation -> Operations"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C22!F32",
+      "message": "Phase retained without semantic mapping: Audit"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C23!F28",
+      "message": "Phase retained without semantic mapping: Procurement"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C23!F30",
+      "message": "Phase retained without semantic mapping: Reporting"
+    },
+    {
+      "severity": "WARNING",
+      "code": "UNMAPPED_PHASE",
+      "source": "C23!F32",
+      "message": "Phase retained without semantic mapping: Periodic Review"
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A7",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A8",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A9",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A10",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A11",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A15",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A16",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A18",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A19",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A20",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A23",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A24",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A25",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A26",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A27",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A30",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A31",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A32",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A33",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A34",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A34",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A35",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A36",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A36",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A37",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A37",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A38",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A38",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A39",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A40",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A40",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A41",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A42",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A43",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A44",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A45",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A46",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A48",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A49",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A50",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A51",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A52",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A53",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A54",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A55",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A56",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A57",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A59",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A61",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A62",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A63",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A64",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A65",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A66",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A67",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A68",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A69",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A70",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A71",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A72",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A73",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A74",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A75",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A76",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A77",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A78",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A79",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A80",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A81",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A82",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A84",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A85",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A87",
+      "message": "Missing metadata in columns D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A87",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A91",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A91",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A92",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A95",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A96",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A97",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A98",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A99",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A105",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A105",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A106",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A106",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A107",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A108",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A110",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A110",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A111",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A112",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A113",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A114",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A115",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A116",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A119",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A119",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A120",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A123",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A124",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A125",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A126",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A127",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A128",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A129",
+      "message": "Missing metadata in columns D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A129",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A130",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A132",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A133",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A134",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A135",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A136",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A137",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A138",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A139",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A140",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A144",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A146",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A146",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A148",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A149",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A150",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A150",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A151",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A152",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A154",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A156",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A157",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A159",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A161",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A162",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A163",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A166",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A168",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A168",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A170",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A171",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A172",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A173",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A174",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A175",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A176",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A179",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A180",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A181",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A182",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A184",
+      "message": "Missing metadata in columns D; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A184",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A185",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A186",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A188",
+      "message": "Missing metadata in columns F; no values were invented."
+    },
+    {
+      "severity": "WARNING",
+      "code": "POSSIBLY_TRUNCATED_REFERENCE",
+      "source": "References!A189",
+      "message": "Source contains an ellipsis; inspect title and links before publication."
+    },
+    {
+      "severity": "WARNING",
+      "code": "INCOMPLETE_REFERENCE_METADATA",
+      "source": "References!A190",
+      "message": "Missing metadata in columns C, D; no values were invented."
+    }
+  ]
+}
