@@ -51,4 +51,17 @@ On 15 October 2026, a separate public workbook was prepared with participant obs
 
 ## Scope
 
-This validation covers the catalogue foundation and the local manual C-01 workflow, including the four screens. It does not establish empirical usability, model quality, regulatory compliance or ethical adequacy. Provider adapters, adaptation of other clusters, shared-deployment access controls and implementation-evidence validation remain later increments. Reviewer names are self-reported, not authenticated identities.
+This validation covers the catalogue foundation and the local manual C-01 workflow, including the four screens. It does not establish empirical usability, model quality, regulatory compliance or ethical adequacy. The checks above describe the earlier manual baseline. The assisted increment is recorded below; shared-deployment access controls and implementation-evidence validation remain later increments. Reviewer names are self-reported, not authenticated identities.
+
+
+## Profile material and assisted workflow increment
+
+Implemented on 15 October 2026: optional attachments for every Known field; Company Ethics documents alongside known safeguards; optional Additional Material; explicit sharing None; multi-phase profile selection; all-cluster manual adaptation; OpenAI, Anthropic Claude and Ollama adapters; reviewed cluster/label proposals; six adapted actions per cluster with phase suitability; immutable reasoning/attachment provenance in PostgreSQL and plan exports. See [assisted workflow](ASSISTED_WORKFLOW.md).
+
+The suite contains 12 importer tests, four original integration cases and five assisted integration cases. The added tests exercise real PostgreSQL and a local HTTP provider stub: all three wire formats, text/file-only profiles, additive company ethics, None, multipart uploads, cross-project attachment/run lookup, PDF/DOCX extraction, image payloads, unsupported/truncated material, immutable attachment records, all-six-action coverage, source label validation, phase validation, explicit human acceptance, multi-cluster plan export, missing authorisation, stale runs and provider errors without selection changes. No real cloud credentials or paid model calls are used in automated tests.
+
+Live-provider output quality, prompt-injection robustness and expert usability remain unvalidated. Schema checks establish source membership and structural consistency, not ethical correctness or regulatory compliance. Existing catalogue-validation results must not be presented as tool validation.
+
+The final local Docker/PostgreSQL run passed **21 tests** (12 importer and nine integration), with zero failures or errors. The production stack applied Flyway V3 and reached readiness while retaining existing projects and approved plans. Browser QA used a separate fictional Demo project: a company policy text file uploaded successfully; known safeguards text survived Company Ethics selection; None displayed the exact no-third-party-sharing statement; profile confirmation persisted the attachment; manual C-01/C-02 selection opened twelve correctly identified source actions. Provider selection showed all three adapters. Desktop (1280 px) and the default narrow viewport were inspected; the desktop document had no horizontal overflow. No real provider inference was attempted because cloud keys are not configured and Ollama is not running.
+
+![Assisted selection and provider configuration](screenshots/assisted-selection-desktop.png)

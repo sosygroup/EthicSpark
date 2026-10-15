@@ -26,6 +26,7 @@ public class CatalogueController {
     }
 
     public record ClusterSummary(String id, String title, String definition, List<String> concerns, int actionCount, int labelMappingCount) {}
+    @GetMapping("/{version}/cluster-details") public List<Catalogue.Cluster> clusterDetails(@PathVariable String version) { return catalogue(version).clusters(); }
     @GetMapping("/{version}/clusters") public List<ClusterSummary> clusters(@PathVariable String version, @RequestParam(defaultValue = "") String q) {
         String query = q.toLowerCase(Locale.ROOT).strip();
         return catalogue(version).clusters().stream().filter(c -> (c.id() + " " + c.title() + " " + c.definition() + " " + String.join(" ", c.concerns())).toLowerCase(Locale.ROOT).contains(query))
@@ -71,5 +72,9 @@ public class CatalogueController {
         }
         @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
         ProblemDetail invalidParameter() { return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid query parameter. Category values: KNOW, PROTECT, INFORM, ASSESS, VALIDATE, RESPOND."); }
+        @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+        ProblemDetail oversizedUpload() { return ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE,"Each attachment must be at most 10 MiB."); }
+        @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+        ProblemDetail malformedBody() { return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,"The request body is invalid or has missing required values."); }
     }
 }

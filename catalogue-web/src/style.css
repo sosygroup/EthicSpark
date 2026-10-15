@@ -100,6 +100,10 @@ a:focus-visible {
   grid-template-columns: 172px minmax(0, 1fr);
   gap: 20px;
 }
+.action-nav {
+  max-height: 75vh;
+  overflow-y: auto;
+}
 .source {
   background: #f7f9fc !important;
   line-height: 1.7;

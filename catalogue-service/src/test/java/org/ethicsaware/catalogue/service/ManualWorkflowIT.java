@@ -84,7 +84,7 @@ class ManualWorkflowIT {
         assertThatThrownBy(()->service.profile(p.id(),new ProfileChange(p.revision(),"Reviewer",p.profile().fields(),true))).isInstanceOf(ResponseStatusException.class);
         Project ready=ready();
         assertThatThrownBy(()->service.selection(ready.id(),new SelectionChange(ready.revision()-1,"Reviewer",List.of("C-01")))).isInstanceOf(ResponseStatusException.class);
-        assertThatThrownBy(()->service.selection(ready.id(),new SelectionChange(ready.revision(),"Reviewer",List.of("C-02")))).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(()->service.selection(ready.id(),new SelectionChange(ready.revision(),"Reviewer",List.of("C-99")))).isInstanceOf(ResponseStatusException.class);
         assertThatThrownBy(()->service.recommendation(ready.id(),"C01-A1",new RecommendationChange(ready.revision(),"Reviewer",ready.recommendations().getFirst(),"reject"))).isInstanceOf(ResponseStatusException.class);
         assertThatThrownBy(()->service.approve(ready.id(),new Approval(ready.revision(),"Reviewer",UUID.randomUUID()))).isInstanceOf(ResponseStatusException.class);
     }

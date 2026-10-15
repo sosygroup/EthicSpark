@@ -11,7 +11,8 @@ import static org.ethicsaware.catalogue.service.Workflow.*;
 @RequestMapping("/api/projects")
 public class WorkflowController {
     private final WorkflowService service;
-    public WorkflowController(WorkflowService service) { this.service=service; }
+    private final AttachmentService attachments;
+    public WorkflowController(WorkflowService service,AttachmentService attachments) { this.service=service; this.attachments=attachments; }
     @GetMapping public List<Summary> list() { return service.list(); }
     @PostMapping @ResponseStatus(HttpStatus.CREATED) public Project create(@RequestBody Create r) { return service.create(r); }
     @GetMapping("/{id}") public Project get(@PathVariable UUID id) { return service.get(id); }
@@ -35,10 +36,25 @@ public class WorkflowController {
         StringBuilder b=new StringBuilder("<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Ethics action plan</title><style>body{font:16px/1.6 system-ui;max-width:960px;margin:40px auto;padding:24px;color:#202124}article{border-top:1px solid #dadce0;margin-top:32px;padding-top:20px}pre{white-space:pre-wrap}dt{font-weight:600}dd{margin:0 0 12px;white-space:pre-wrap}</style><body>");
         b.append("<h1>").append(esc(p.projectName())).append("</h1><p>").append(p.kind()).append(" plan · Version ").append(p.version()).append("</p><p>Approval records planning decisions; implementation remains Not started. This plan does not certify compliance.</p><h2>Provenance</h2><dl>");
         pair(b,"Catalogue version",p.catalogueVersion()); pair(b,"Profile version",String.valueOf(p.profile().version())); pair(b,"Actor",p.actor()); pair(b,"Timestamp",p.at().toString()); pair(b,"Origin",p.origin());
-        b.append("</dl><h2>Application profile</h2><dl>"); for(Field f:p.profile().fields()) pair(b,f.id(),f.status().equals("known")?f.value():f.status().replace('_',' ')); b.append("</dl><h2>Gaps and excluded work</h2><ul>");
+        b.append("</dl><h2>Application profile</h2><dl>");
+        for(Field f:p.profile().fields()) {
+            pair(b,f.id(),Set.of("known","company_ethics","none").contains(f.status())?f.value():f.status().replace('_',' '));
+            List<UUID> ids=new ArrayList<>(f.files());ids.addAll(f.companyEthics());
+            for(UUID id:ids) { var a=attachments.get(p.projectId(),id);pair(b,"Attachment",a.name()+" · SHA-256 "+a.sha256()+" · "+a.extraction()); }
+        }
+        b.append("</dl>");
+        if(p.reasoning()!=null) {
+            b.append("<h2>Reviewed cluster and ethics label proposal</h2><dl>");
+            for(var c:p.reasoning().output().clusters()) if(p.entries().stream().anyMatch(e->e.source().id().startsWith(c.clusterId().replace("-","")+"-"))) {
+                pair(b,c.clusterId(),c.rationale());for(var m:c.mappings()) pair(b,m.card(),m.characteristic());
+            }
+            pair(b,"Prompt version",p.reasoning().promptVersion());pair(b,"Input SHA-256",p.reasoning().inputSha256());pair(b,"Provider output SHA-256",p.reasoning().outputSha256());
+            b.append("</dl>");
+        }
+        b.append("<h2>Gaps and excluded work</h2><ul>");
         for(String gap:p.gaps()) b.append("<li>").append(esc(gap)).append("</li>"); b.append("</ul><h2>Action plan</h2>");
         for(Entry e:p.entries()) { var r=e.recommendation(); var s=e.source(); b.append("<article><h3>").append(esc(s.id())).append(" · ").append(s.category()).append("</h3><dl>");
-            pair(b,"Review status",r.reviewStatus()); pair(b,"Implementation status",r.implementationStatus()); pair(b,"Concern scenario",r.scenario()); pair(b,"Adapted action",r.action()); pair(b,"Expected evidence",r.evidence()); pair(b,"Validation criterion",r.criterion().isBlank()?"Unresolved":r.criterion()); pair(b,"Owner",r.owner().isBlank()?"Unassigned":r.owner()); pair(b,"Phases",String.join(", ",r.phases())); pair(b,"Catalogue roles",String.join("; ",s.roles())); pair(b,"Rationale",r.rationale()); pair(b,"Original action",s.text()); pair(b,"Source cell",s.source()); pair(b,"References",String.join(", ",s.referenceIds())); b.append("</dl></article>"); }
+            pair(b,"Phase suitability",r.applicability()+": "+r.applicabilityReason()); pair(b,"Review status",r.reviewStatus()); pair(b,"Implementation status",r.implementationStatus()); pair(b,"Concern scenario",r.scenario()); pair(b,"Adapted action",r.action()); pair(b,"Expected evidence",r.evidence()); pair(b,"Validation criterion",r.criterion().isBlank()?"Unresolved":r.criterion()); pair(b,"Owner",r.owner().isBlank()?"Unassigned":r.owner()); pair(b,"Phases",String.join(", ",r.phases())); pair(b,"Catalogue roles",String.join("; ",s.roles())); pair(b,"Rationale",r.rationale()); pair(b,"Original action",s.text()); pair(b,"Source cell",s.source()); pair(b,"References",String.join(", ",s.referenceIds())); b.append("</dl></article>"); }
         return b.append("</body></html>").toString();
     }
     private void pair(StringBuilder b,String key,String value) { b.append("<dt>").append(esc(key)).append("</dt><dd>").append(esc(value)).append("</dd>"); }

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import ProfileFields from "./ProfileFields";
+import ReasoningPanel from "./ReasoningPanel";
 import {
   Alert,
   Accordion,
@@ -44,44 +46,6 @@ const steps = [
   "Cluster selection",
   "Adaptation workspace",
   "Project plan",
-];
-const labels: Record<string, string> = {
-  purpose: "Purpose and features",
-  stakeholders: "Stakeholders and affected people",
-  data: "Data processed",
-  behaviour: "Decision-making behaviour",
-  phase: "Current SDLC phase",
-  retention: "Data retention",
-  sharing: "External data sharing",
-  safeguards: "Existing safeguards",
-};
-const inputLabels: Record<string, string> = {
-  purpose: "Capabilities and intended outcomes",
-  stakeholders: "Users, affected non-users and vulnerable groups",
-  data: "Data types, sources and sensitivity",
-  behaviour: "Decisions, automation and human control",
-  phase: "Stage of development or operation",
-  retention: "Retention periods and deletion rules",
-  sharing: "Recipients, services and data shared",
-  safeguards: "Implemented controls and supporting evidence",
-};
-const placeholders: Record<string, string> = {
-  purpose: "What does the application do, and why?",
-  stakeholders: "Who uses it? Who else may be affected?",
-  data: "Describe data types, sources and sensitivity.",
-  behaviour: "Describe decisions, automation and human intervention.",
-  phase: "For example, Requirements or Operations",
-  retention: "How long is data retained?",
-  sharing: "Which external organisations or services receive data?",
-  safeguards: "Describe controls already in place, or mark Unknown.",
-};
-const categories = [
-  "Know",
-  "Protect",
-  "Inform",
-  "Assess",
-  "Validate",
-  "Respond",
 ];
 const reviewLabels: Record<string, string> = {
   proposed: "Proposed",
@@ -130,6 +94,7 @@ async function api<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await response.json();
+  if(data?.profile?.fields && !data.profile.fields.some((f: Field)=>f.id==="additional")) data.profile.fields.push({id:"additional",value:"",status:"known",files:[],companyEthics:[]});
   if (!response.ok)
     throw new Error(data.detail || "The request failed. Please try again.");
   return data;
@@ -154,7 +119,7 @@ export default function App() {
     [fields, setFields] = useState<Field[]>([]),
     [selection, setSelection] = useState<string[]>([]),
     [clusters, setClusters] = useState<ClusterSummary[]>([]),
-    [c01, setC01] = useState<Cluster | null>(null);
+    [catalogueClusters, setCatalogueClusters] = useState<Cluster[]>([]);
   const [index, setIndex] = useState(0),
     [phaseText, setPhaseText] = useState(""),
     [approvalKey, setApprovalKey] = useState(""),
@@ -250,7 +215,7 @@ export default function App() {
     let active = true;
     Promise.all([
       api<ClusterSummary[]>("/api/catalogue/versions/" + version + "/clusters"),
-      api<Cluster>("/api/catalogue/versions/" + version + "/clusters/C-01"),
+      api<Cluster[]>("/api/catalogue/versions/" + version + "/cluster-details"),
       api<{ id: string; title: string; links: string }[]>(
         "/api/catalogue/versions/" + version + "/references",
       ),
@@ -258,7 +223,7 @@ export default function App() {
       .then(([cs, c, rs]) => {
         if (active) {
           setClusters(cs);
-          setC01(c);
+          setCatalogueClusters(c);
           setRefs(rs);
         }
       })
@@ -372,7 +337,8 @@ export default function App() {
       });
       setProject(p);
       setNotice("Cluster selection saved.");
-      if (selection.includes("C-01")) setStage(2);
+      setIndex(0);
+      if (selection.length) setStage(2);
     });
   }
   async function review(decision: string) {
@@ -459,7 +425,7 @@ export default function App() {
       ["accepted", "edited"].includes(r.reviewStatus),
     ).length || 0;
   const unknowns = fields.filter((f) => f.status === "unknown").length;
-  const source = c01?.actions[index];
+  const source = catalogueClusters.flatMap(c=>c.actions).find(a=>a.id===edit?.sourceActionId);
   const shown = clusters.filter((c) =>
     (c.id + " " + c.title + " " + c.definition + " " + c.concerns.join(" "))
       .toLowerCase()
@@ -519,10 +485,9 @@ export default function App() {
           + New project
         </Button>
         <div className="local-note">
-          <strong>Manual pilot · C-01</strong>
+          <strong>Catalogue workspace</strong>
           <p>
-            Local workspace. Reviewer names are self-reported. No model calls
-            are made.
+            Local workspace. Reviewer names are self-reported. Model analysis runs only when you request it.
           </p>
           <a href="/api/catalogue/versions" target="_blank" rel="noreferrer">
             Catalogue API ↗
@@ -611,7 +576,7 @@ export default function App() {
                   </Typography>
                 </div>
                 <Chip
-                  label="Manual pilot · Privacy & Data Protection"
+                  label="Manual or LLM-assisted workflow"
                   sx={{ bgcolor: "#e8f0fe", color: "#1967d2" }}
                 />
               </div>
@@ -681,7 +646,7 @@ export default function App() {
               <div className="intro">
                 <div>
                   <div className="eyebrow">
-                    Step {stage + 1} of 4 · Manual workflow
+                    Step {stage + 1} of 4 · Reviewed workflow
                   </div>
                   <Typography variant="h4">{steps[stage]}</Typography>
                   <Typography color="text.secondary" sx={{ mt: 1 }}>
@@ -727,81 +692,7 @@ export default function App() {
                         }
                       />
                     </div>
-                    <div className="profile-grid">
-                      {fields.map((f, i) => (
-                        <Box
-                          key={f.id}
-                          className={f.id === "purpose" ? "wide" : ""}
-                        >
-                          <Stack
-                            direction="row"
-                            alignItems="center"
-                            justifyContent="space-between"
-                            sx={{ mb: 1 }}
-                          >
-                            <Typography fontWeight={600} fontSize={14}>
-                              {labels[f.id]}
-                            </Typography>
-                            <TextField
-                              select
-                              value={f.status}
-                              onChange={(e) =>
-                                setFields((fs) =>
-                                  fs.map((v, j) =>
-                                    j === i
-                                      ? {
-                                          ...v,
-                                          status: e.target
-                                            .value as Field["status"],
-                                          value:
-                                            e.target.value === "known"
-                                              ? v.value
-                                              : "",
-                                        }
-                                      : v,
-                                  ),
-                                )
-                              }
-                              SelectProps={{
-                                SelectDisplayProps: {
-                                  "aria-label": labels[f.id] + " status",
-                                },
-                              }}
-                              sx={{ width: 155 }}
-                            >
-                              <MenuItem value="known">Known</MenuItem>
-                              <MenuItem value="unknown">Unknown</MenuItem>
-                              <MenuItem value="not_applicable">
-                                Not applicable
-                              </MenuItem>
-                            </TextField>
-                          </Stack>
-                          <TextField
-                            fullWidth
-                            multiline
-                            minRows={f.id === "phase" ? 1 : 2}
-                            label={inputLabels[f.id]}
-                            placeholder={placeholders[f.id]}
-                            value={f.value}
-                            disabled={f.status !== "known"}
-                            onChange={(e) =>
-                              setFields((fs) =>
-                                fs.map((v, j) =>
-                                  j === i ? { ...v, value: e.target.value } : v,
-                                ),
-                              )
-                            }
-                            helperText={
-                              f.status === "unknown"
-                                ? "This gap will remain visible in your plan."
-                                : f.status === "not_applicable"
-                                  ? "Explicitly marked as not applicable."
-                                  : "Supplied by you; no model inference."
-                            }
-                          />
-                        </Box>
-                      ))}
-                    </div>
+                    <ProfileFields base={base} fields={fields} setFields={setFields} disabled={busy} onError={setError} onUploading={setBusy} />
                     <div className="sticky-actions">
                       <Button
                         disabled={busy || !actor.trim()}
@@ -838,6 +729,8 @@ export default function App() {
               )}
               {stage === 1 && (
                 <>
+                  {project && <ReasoningPanel key={project.id} project={project} actor={actor} clusters={catalogueClusters} disabled={busy}
+                    onError={setError} onBusy={setBusy} onApply={p=>{setProject(p);setIndex(0);setStage(2);setNotice("Model proposal saved. Review and accept each action separately.");void refreshList();}} />}
                   <Paper className="panel" sx={{ mb: 3 }}>
                     <div
                       className="toolbar"
@@ -866,9 +759,7 @@ export default function App() {
                       )}
                     </div>
                     <div className="selection-note" style={{ marginTop: 20 }}>
-                      This pilot supports the complete manual workflow for{" "}
-                      <strong>C-01 Privacy & Data Protection</strong>. All other
-                      clusters are available for inspection.
+                      Select relevant clusters manually, or review a model proposal above. Each selected cluster has six source actions; assess their suitability for your selected phases.
                     </div>
                     {project && !project.profile.confirmed && (
                       <Alert severity="info" sx={{ mt: 2 }}>
@@ -899,10 +790,10 @@ export default function App() {
                           <Typography variant="overline" color="primary">
                             {c.id}
                           </Typography>
-                          {c.id === "C-01" && (
+                          {selection.includes(c.id) && (
                             <Chip
                               size="small"
-                              label="Pilot workflow"
+                              label="Selected"
                               color="primary"
                               variant="outlined"
                             />
@@ -931,7 +822,7 @@ export default function App() {
                           >
                             View details
                           </Button>
-                          {c.id === "C-01" && project && (
+                          {project && (
                             <FormControlLabel
                               sx={{ mr: 0 }}
                               control={
@@ -940,7 +831,7 @@ export default function App() {
                                   disabled={!project.profile.confirmed || busy}
                                   onChange={(e) =>
                                     setSelection(
-                                      e.target.checked ? ["C-01"] : [],
+                                      e.target.checked ? [...selection, c.id] : selection.filter(id=>id!==c.id),
                                     )
                                   }
                                 />
@@ -981,7 +872,7 @@ export default function App() {
               {stage === 2 &&
               project &&
               (!project.profile.confirmed ||
-                !project.selectedClusters.includes("C-01")) ? (
+                project.selectedClusters.length === 0) ? (
                 <Alert
                   severity="info"
                   action={
@@ -992,7 +883,7 @@ export default function App() {
                     </Button>
                   }
                 >
-                  Confirm your application profile and select C-01 to start
+                  Confirm your application profile and select a cluster to start
                   adaptation.
                 </Alert>
               ) : (
@@ -1006,9 +897,10 @@ export default function App() {
                         className="panel action-nav"
                         sx={{ p: "12px!important", alignSelf: "start" }}
                       >
-                        {categories.map((c, i) => (
+                        {project.recommendations.map((r, i) => (
+                          (()=>{const a=catalogueClusters.flatMap(c=>c.actions).find(a=>a.id===r.sourceActionId);const c=(a?.category||"Action").toLowerCase();return (
                           <Button
-                            key={c}
+                            key={r.sourceActionId}
                             fullWidth
                             sx={{
                               justifyContent: "space-between",
@@ -1023,7 +915,7 @@ export default function App() {
                             }}
                             disabled={busy}
                           >
-                            {c}
+                            <span>{r.sourceActionId}<br/>{c.charAt(0).toUpperCase()+c.slice(1)}</span>
                             <span>
                               {["accepted", "edited"].includes(
                                 project.recommendations[i]?.reviewStatus,
@@ -1031,7 +923,7 @@ export default function App() {
                                 ? "✓"
                                 : i + 1}
                             </span>
-                          </Button>
+                          </Button>);})()
                         ))}
                         <Divider sx={{ my: 1 }} />
                         <Typography variant="caption" color="text.secondary">
@@ -1046,10 +938,13 @@ export default function App() {
                           sx={{ mb: 2 }}
                         >
                           <Typography variant="h6">
-                            {source.id} · {categories[index]}
+                            {source.id} · {source.category.charAt(0)+source.category.slice(1).toLowerCase()}
                           </Typography>
                           <Status value={edit.reviewStatus} />
                         </Stack>
+                        <Alert severity={edit.applicability === "not_applicable" ? "warning" : "info"} sx={{mb:2}}>
+                          Phase suitability: {(edit.applicability||"suitable").replaceAll("_"," ")}. {edit.applicabilityReason||"Review suitability against your current lifecycle phases."}
+                        </Alert>
                         <div className="two-col">
                           <Paper className="panel source">
                             <Typography
@@ -1059,7 +954,7 @@ export default function App() {
                               Original catalogue
                             </Typography>
                             <Typography fontWeight={600} sx={{ mt: 1, mb: 2 }}>
-                              Privacy & Data Protection
+                              {catalogueClusters.find(c=>c.actions.some(a=>a.id===source.id))?.title}
                             </Typography>
                             <Typography className="source-text">
                               {source.text}
@@ -1124,6 +1019,12 @@ export default function App() {
                               Your application-specific adaptation
                             </Typography>
                             <Stack spacing={2.5} sx={{ mt: 2 }}>
+                              <TextField select label="Phase suitability" value={edit.applicability||"suitable"} onChange={e=>patch("applicability",e.target.value)}>
+                                <MenuItem value="suitable">Suitable for selected phases</MenuItem>
+                                <MenuItem value="not_applicable">Not applicable for selected phases</MenuItem>
+                                <MenuItem value="uncertain">Uncertain — needs information</MenuItem>
+                              </TextField>
+                              <TextField label="Phase suitability explanation" value={edit.applicabilityReason||""} multiline minRows={2} onChange={e=>patch("applicabilityReason",e.target.value)} helperText="Explain any change to the model's phase assessment before accepting."/>
                               <TextField
                                 label="Concern scenario"
                                 value={edit.scenario}
@@ -1217,7 +1118,7 @@ export default function App() {
                             </Button>
                             <Button
                               variant="contained"
-                              disabled={busy || !actor.trim()}
+                              disabled={busy || !actor.trim() || (edit.applicability !== undefined && edit.applicability !== "suitable")}
                               onClick={() => review("accept")}
                             >
                               Accept
@@ -1336,7 +1237,7 @@ export default function App() {
                             !actor.trim() ||
                             !project.profile.confirmed ||
                             accepted === 0 ||
-                            !project.selectedClusters.includes("C-01")
+                            project.selectedClusters.length === 0
                           }
                           onClick={() =>
                             work(async () => {
@@ -1360,6 +1261,10 @@ export default function App() {
                         : "Draft plan. Only accepted recommendations will enter an approved version."}{" "}
                       Implementation remains Not started.
                     </Alert>
+                    {viewPlan?.reasoning && <Alert severity="info" sx={{mt:2}}>
+                      LLM-assisted proposal: {viewPlan.reasoning.provider} / {viewPlan.reasoning.model}. Actions and label characteristics remain subject to your review.
+                    </Alert>}
+                    {viewPlan?.reasoning?.output.clusters.map(c=><Box key={c.clusterId} sx={{mt:2}}><Typography fontWeight={600}>{c.clusterId} · Selected ethics label characteristics</Typography>{c.mappings.map((m,i)=><Typography variant="body2" key={i}>{m.card} → {m.characteristic}</Typography>)}</Box>)}
                     {viewPlan && (
                       <Accordion
                         defaultExpanded
@@ -1514,7 +1419,7 @@ export default function App() {
                     {viewPlan?.entries.length === 0 && (
                       <Typography sx={{ py: 3 }} color="text.secondary">
                         No selected recommendations in this plan. Confirm the
-                        profile and select C-01 to continue.
+                        profile and select a cluster to continue.
                       </Typography>
                     )}
                   </Paper>

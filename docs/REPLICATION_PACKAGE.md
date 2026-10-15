@@ -25,19 +25,19 @@ Paper drafts, the developer handoff DOCX, local credentials, database volumes, d
 2. Start Docker Desktop or Docker Engine with Compose v2. Shell instructions use a POSIX shell; Windows users can run them in WSL2 with Docker integration.
 3. Run `./scripts/run.sh`. The first build downloads pinned Java/Node images and package dependencies, generates local database credentials and imports the workbook.
 4. Open http://localhost:8082. Choose Start with an example and supply a reviewer name. No existing project database or browser storage is required.
-5. Follow `docs/MANUAL_WORKFLOW.md`. Only C-01 adaptation is enabled; all 24 clusters can be inspected. No LLM/provider credentials are needed.
-6. Run `./scripts/test.sh` to build and validate against an isolated PostgreSQL instance. It does not use the normal application database. The baseline suite contains 12 importer tests and four integration tests.
+5. Follow `docs/MANUAL_WORKFLOW.md`. Manual adaptation is available for all 24 clusters. No model credentials are needed for manual work. Optional assisted analysis uses [provider setup](ASSISTED_WORKFLOW.md).
+6. Run `./scripts/test.sh` to build and validate against an isolated PostgreSQL instance. It does not use the normal application database. The suite contains 12 importer tests, four foundation/manual integration tests and five assisted-workflow integration tests. Provider tests use a local HTTP stub.
 7. Save the Git commit SHA, test log and exports with any reported observations. `git rev-parse HEAD` identifies the source baseline.
 
 The first build requires network access to container and package registries. Subsequent use depends on local caches. Java/Node/Maven versions, application dependencies and container image digests are specified in the repository. Timestamps, project/plan UUIDs and reviewer labels vary between runs; compare source content, state transitions, included entries and disclosed gaps rather than byte-identical whole exports.
 
 Expected import result: 24 clusters, 144 actions, R-001 through R-184, zero blocking errors and 204 recorded source-review warnings for SHA-256 `3d97e021baf84d0580befccfdd49c696398c04ac75b0a380a35b176989cab757`. See the import report for warning details; valid IDs do not prove substantive bibliographic support.
 
-Expected workflow result: an explicitly confirmed profile, manual C-01 selection, separately recorded review decisions, an approved snapshot containing accepted entries only and matching HTML/JSON exports. Implementation remains Not started. Changing the profile reopens review without modifying previous approvals.
+Expected workflow result: an explicitly confirmed profile, manual or reviewed assisted selection, separately recorded review decisions, an approved snapshot containing accepted entries only and matching HTML/JSON exports. Implementation remains Not started. Changing the profile reopens review without modifying previous approvals.
 
 ## Relationship to the paper
 
-The source workbook and importer instantiate the catalogue structure. The current manual tool demonstrates a limited C-01 application workflow. The repository does not yet contain the original expert-interview dataset, full analysis scripts or an empirical evaluation of the tool. The catalogue's reported expert validation must not be presented as validation of the tool's usability or effectiveness.
+The source workbook and importer instantiate the catalogue structure. The current tool supports manual and assisted catalogue application. Adapter tests establish transport and schema behaviour; no live-provider quality evaluation has been performed. The repository does not yet contain the original expert-interview dataset, full analysis scripts or an empirical evaluation of the tool. The catalogue's reported expert validation must not be presented as validation of the tool's usability or effectiveness.
 
 The paper's final claims, replication datasets and analysis procedures must be reconciled with the released artefact before submission. A public version may also need a review-appropriate anonymous distribution; this named repository is public.
 

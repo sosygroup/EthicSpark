@@ -1,6 +1,8 @@
 # Ethics catalogue tool MVP specification
 
-Version 0.1 — 14 October 2026
+Version 0.2 — 15 October 2026
+
+Implementation update: profile attachments, Company Ethics, Additional Material, sharing None, all-cluster adaptation and three LLM providers are now implemented. See [assisted workflow](ASSISTED_WORKFLOW.md) for the actual shipped limits and review flow. Requirements below that concern authenticated shared deployment, implementation-evidence validation, generation idempotency, partial recovery and automatic retries remain release targets, not claims about this local increment.
 
 This specification defines the first implementation of the developer-facing ethics catalogue tool. The product helps software teams turn the catalogue into a reviewed, application-specific action plan and provides an executable research artefact for evaluation with the catalogue experts.
 
@@ -236,4 +238,4 @@ Compare manual catalogue use with assisted tool use using matched tasks and coun
 
 Separate catalogue quality, model output quality and interface usability in the analysis. Record participants' prior involvement in catalogue validation. Do not treat model self-evaluation or acceptance counts alone as evidence of effectiveness.
 
-Before the assisted increment, choose the initial provider and model, then the second adapter, based on deployment and data-handling constraints. Before the shared study, record hosting, retention/deletion settings, participant permissions and the evaluation protocol. These choices do not block the data foundation or manual vertical slice.
+The assisted increment supports OpenAI, Anthropic Claude and Ollama, with models selected by the operator/user rather than a fixed default. Before the shared study, record hosting, retention/deletion settings, participant permissions and the evaluation protocol. These choices do not block the data foundation or manual vertical slice.

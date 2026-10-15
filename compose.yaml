@@ -25,6 +25,16 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       CATALOGUE_PATH: /app/input/catalogue.xlsx
       CATALOGUE_REPORT: /app/reports/import-report.json
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODELS: ${OPENAI_MODELS:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODELS: ${ANTHROPIC_MODELS:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+      OLLAMA_MODELS: ${OLLAMA_MODELS:-}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+      OLLAMA_EXTERNAL: ${OLLAMA_EXTERNAL:-false}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - catalogue-reports:/app/reports
     depends_on:

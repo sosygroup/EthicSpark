@@ -31,3 +31,10 @@ Inspect restored version counts and reports before switching a service's `DB_URL
 `/actuator/health/readiness` includes database connectivity and startup readiness. The container health check uses the same endpoint. Inspect `docker compose logs application` for startup failures; a structurally invalid workbook writes its validation report before aborting. Unreadable/corrupt files fail with a startup log diagnostic.
 
 Stop with `docker compose stop`. Avoid deleting the database volume when preserving work. The test script uses a separate ephemeral PostgreSQL service and does not reset the development database.
+
+
+## Attachments and model providers
+
+Flyway V3 stores uploaded bytes, extracted text and reasoning runs in PostgreSQL. The normal database backup includes them; treat backups and plan exports as project data. Removing an attachment from a new profile does not delete its historical bytes. Confirmed profiles and approved plans remain immutable.
+
+See [assisted workflow](ASSISTED_WORKFLOW.md) for provider configuration. Change API keys only in the local ignored `.env`, then recreate the application with `./scripts/run.sh`. Avoid `docker compose config` in shared logs because it expands secrets. Do not expose this unauthenticated local workspace as a public multi-user service.

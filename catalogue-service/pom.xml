@@ -4,6 +4,7 @@
   <parent><groupId>org.ethicsaware</groupId><artifactId>ethics-catalogue</artifactId><version>0.1.0-SNAPSHOT</version></parent>
   <artifactId>catalogue-service</artifactId>
   <dependencies>
+    <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.8</version></dependency>
     <dependency><groupId>org.ethicsaware</groupId><artifactId>catalogue-core</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>org.ethicsaware</groupId><artifactId>catalogue-web</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>

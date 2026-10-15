@@ -1,8 +1,8 @@
 # Ethics-Aware Software Engineering Catalogue
 
-EthicSpark is a developer-facing ethics catalogue tool. The current increment provides an English React/Material UI workspace for the complete manual C-01 path: application profile, cluster selection, adaptation/review of six actions, immutable plan approval and HTML/JSON export. Projects and decision history persist in PostgreSQL. All 24 clusters remain inspectable.
+EthicSpark is a developer-facing ethics catalogue tool. The English React/Material UI workspace supports application profiles with file attachments, manual or LLM-assisted selection across all 24 clusters, adaptation and human review of six actions per cluster, immutable plan approval and HTML/JSON export. Projects, attachments and decision history persist in PostgreSQL. OpenAI, Anthropic Claude and local Ollama are supported.
 
-The catalogue contains **24 clusters, 144 actions and 184 references**. The canonical action categories are **Know, Protect, Inform, Assess, Validate and Respond**. Requirements and Operations are the canonical phase spellings.
+The catalogue contains **24 clusters, 144 actions and 184 references**. The canonical action categories are **Know, Protect, Inform, Assess, Validate and Respond**. Lifecycle phases use consistent names: Requirements for requirements work and Operations for running deployed software.
 
 ![Manual C-01 project plan](docs/screenshots/manual-plan-desktop.jpg)
 
@@ -18,7 +18,7 @@ The public catalogue dataset is included as `data/catalogue-public.xlsx`. Expert
 
 The script creates a private `.env` with a random local database password when missing, builds using Java 25 and starts the application and PostgreSQL. It waits for readiness, including completion of the catalogue import and database connectivity.
 
-Open [the workspace](http://localhost:8082). Choose **Start with an example**, supply your local reviewer name and follow the four screens. You do not need to compose API URLs or enter catalogue version IDs. See [the manual walkthrough](docs/MANUAL_WORKFLOW.md).
+Open [the workspace](http://localhost:8082). Choose **Start with an example**, supply your local reviewer name and follow the four screens. You do not need to compose API URLs or enter catalogue version IDs. See [the manual walkthrough](docs/MANUAL_WORKFLOW.md). For uploads and optional model analysis, follow [assisted workflow and provider setup](docs/ASSISTED_WORKFLOW.md).
 
 The [versions API](http://localhost:8082/api/catalogue/versions) remains available for technical inspection. Port 8082 avoids the existing local services on 8080/8081; override `APP_PORT` in `.env` if needed. The database has no host port in the normal Compose deployment. The application binds to localhost on the host.
 
@@ -59,7 +59,7 @@ Missing versions or entities return HTTP 404. Invalid category parameters return
 | `POST /api/projects` | Create a project using the latest imported catalogue |
 | `GET /api/projects/{id}` | Read the current profile, selection and recommendations |
 | `PUT /api/projects/{id}/profile` | Save or confirm profile; confirmed versions are retained |
-| `PUT /api/projects/{id}/selection` | Save manual C-01 selection |
+| `PUT /api/projects/{id}/selection` | Save manual selection across all clusters |
 | `PUT /api/projects/{id}/recommendations/{action}` | Save an edit or record accept/reject/awaiting-information |
 | `GET /api/projects/{id}/history` | Inspect immutable decision events |
 | `GET /api/projects/{id}/draft` | Preview the current draft and its gaps |
@@ -129,9 +129,9 @@ data/                Public catalogue dataset
 MY-INPUT/            Local research inputs, excluded from Git and Docker
 ```
 
-See [MVP specification](docs/MVP_SPECIFICATION.md), [architecture](docs/ARCHITECTURE.md), [validation results](docs/VALIDATION.md), [manual walkthrough](docs/MANUAL_WORKFLOW.md) and [backup and restore](docs/OPERATIONS.md). The next increment can extend adaptation to the full catalogue and introduce the first provider adapter.
+See [MVP specification](docs/MVP_SPECIFICATION.md), [architecture](docs/ARCHITECTURE.md), [validation results](docs/VALIDATION.md), [manual walkthrough](docs/MANUAL_WORKFLOW.md) and [backup and restore](docs/OPERATIONS.md). See [assisted workflow and provider setup](docs/ASSISTED_WORKFLOW.md) for profile uploads, model selection, phase suitability and review.
 
-This is a local research prototype. Reviewer names are self-reported audit labels, not authenticated identities; all local projects are accessible to the local operator. Shared expert deployment, authentication, project permissions, catalogue publication review and LLM assistance remain later increments. Paper and handoff drafts, credentials, build products and temporary extraction files are excluded from Git.
+This is a local research prototype. Reviewer names are self-reported audit labels, not authenticated identities; all local projects are accessible to the local operator. Shared expert deployment, authentication, project permissions and catalogue publication review remain later increments. Cloud inference requires operator-configured API credentials and explicit per-run authorisation. Paper and handoff drafts, credentials, build products and temporary extraction files are excluded from Git.
 
 ## Coauthor collaboration and replication package
 
