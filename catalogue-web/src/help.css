@@ -1,0 +1,162 @@
+.help-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.help-action > :first-child {
+  min-width: 0;
+}
+.help-full {
+  width: 100%;
+}
+.help-full > :first-child {
+  flex: 1;
+}
+/* Keep information controls independent of surrounding action-button styles. */
+button.help-info {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  color: #526b78 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  line-height: 1 !important;
+}
+button.help-info:hover {
+  background: #e5edf2 !important;
+  color: #165d99 !important;
+}
+button.help-info:focus-visible {
+  outline: 2px solid #1967d2 !important;
+  outline-offset: 2px !important;
+}
+button.help-info > svg {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  color: inherit !important;
+}
+.help-dialog-body p {
+  line-height: 1.65;
+  margin: 0 0 14px;
+}
+.help-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.help-field-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 12px 0 6px;
+  font-size: 13px;
+  color: #52616b;
+}
+.help-start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #52616b;
+  margin: 12px 0;
+}
+.help-for-side-new {
+  width: 100%;
+  margin-bottom: 24px;
+}
+.help-for-side-new > .side-new {
+  flex: 1;
+  margin-bottom: 0;
+}
+.project-list .help-action,
+.thread-list .help-action,
+.file-tree .help-action {
+  display: flex;
+  width: 100%;
+}
+.project-list .help-action > :first-child,
+.thread-list .help-action > :first-child,
+.file-tree .help-action > :first-child {
+  flex: 1;
+}
+.starter-grid > .help-action {
+  display: flex;
+}
+.starter-grid > .help-action > :first-child {
+  flex: 1;
+}
+.help-for-artifact-card {
+  display: flex;
+  width: 100%;
+}
+.help-for-artifact-card > :first-child {
+  flex: 1;
+}
+.help-for-mobile-menu {
+  display: none;
+}
+.composer-caption {
+  flex-wrap: wrap;
+}
+.help-mui-action {
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  .help-for-mobile-menu {
+    display: inline-flex;
+  }
+  .assistant-topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    height: auto;
+    min-height: 65px;
+  }
+  .topbar-left {
+    min-width: 0;
+    flex: 1;
+  }
+  .context-tabs {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 600px) {
+  .starter-grid > .help-action {
+    min-width: 0;
+  }
+  .topbar-actions {
+    gap: 3px;
+    flex-wrap: wrap;
+  }
+  .model-pill {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.side-bottom .help-action {
+  display: flex;
+  font: inherit;
+  color: inherit;
+  margin-bottom: 16px;
+}
+.side-bottom .help-action > button {
+  margin-bottom: 0;
+}

@@ -80,3 +80,9 @@ PATH="$(dirname "$runtime_node"):$PATH" "$runtime_node" --test desktop/test/*.te
 The Java suite uses real PostgreSQL and local HTTP provider stubs. Native-agent tests use disposable folders and simulated permission decisions; they exercise actual file writes and child processes. They do not automate the OS permission dialog or establish real-provider reasoning quality. No real project content is sent to a cloud provider by these tests. A live-provider and expert usability evaluation remain necessary.
 
 Implementation references: [Electron security guidance](https://www.electronjs.org/docs/latest/tutorial/security), [native folder/dialog APIs](https://www.electronjs.org/docs/latest/api/dialog), and [Mermaid rendering/security](https://mermaid.js.org/config/usage.html).
+
+## In-app explanations
+
+Click the circled **i** beside a section, field or action to open its explanation. Each explanation describes the purpose, expected next step and any relevant prerequisite or effect on shared context, files or model requests. These controls remain available beside disabled actions and do not perform the action they describe. Close explanation, Escape or clicking outside returns to the underlying view; keyboard focus returns to the information control.
+
+The information icon in the top bar opens **How to use EthicSpark**, a short first-use guide available even in an existing conversation or on a narrow screen. Model connection, processing consent, live-folder access, generated downloads and operation approvals have separate explanations. The earlier structured workflow also includes page guides and explanations beside its actions and editable fields. All help text is in English.

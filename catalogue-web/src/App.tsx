@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, isValidElement } from "react";
 import type { ReactElement } from "react";
 import {
   Alert,
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -30,6 +29,7 @@ import type {
 } from "./assistant-types";
 import "./assistant.css";
 import Diagram from "./Diagram";
+import { Info, HelpButton, HelpMuiButton } from "./Help";
 
 const native = window.ethicsparkDesktop;
 async function api<T>(
@@ -657,7 +657,8 @@ export default function App() {
             {native ? "Desktop" : "Workspace"}
           </span>
         </div>
-        <button
+        <HelpButton
+          help="conversation"
           className="side-new"
           onClick={() => {
             if (!busy && !executing) {
@@ -671,21 +672,25 @@ export default function App() {
         >
           <Icon name="plus" />
           New conversation
-        </button>
+        </HelpButton>
         <div className="side-heading">
-          Projects
-          <button
+          <span>
+            Projects <Info topic="projects" />
+          </span>
+          <HelpButton
+            help="projects"
             title="New project"
             aria-label="New project"
             onClick={() => setNewProject(true)}
           >
             <Icon name="plus" size={16} />
-          </button>
+          </HelpButton>
         </div>
         <div className="project-list">
           {projects.map((p) => (
             <div key={p.id}>
-              <button
+              <HelpButton
+                help="project"
                 className={
                   "project-row " + (p.id === projectId ? "selected" : "")
                 }
@@ -693,19 +698,20 @@ export default function App() {
               >
                 <Icon name="folder" />
                 <span>{p.name}</span>
-              </button>
+              </HelpButton>
               {p.id === projectId && (
                 <div className="thread-list">
                   {threads
                     .filter((t) => t.projectId === p.id)
                     .map((t) => (
-                      <button
+                      <HelpButton
+                        help="thread"
                         key={t.id}
                         className={thread?.id === t.id ? "active" : ""}
                         onClick={() => void chooseThread(t.id)}
                       >
                         {t.title}
-                      </button>
+                      </HelpButton>
                     ))}
                 </div>
               )}
@@ -718,10 +724,10 @@ export default function App() {
           )}
         </div>
         <div className="side-bottom">
-          <button onClick={() => setSettings(true)}>
+          <HelpButton help="settings" onClick={() => setSettings(true)}>
             <Icon name="gear" />
             Model settings
-          </button>
+          </HelpButton>
           <span>
             Ethics-aware software development
             <br />
@@ -732,13 +738,14 @@ export default function App() {
       <section className="assistant-main">
         <header className="assistant-topbar">
           <div className="topbar-left">
-            <button
+            <HelpButton
+              help="sidebar"
               className="icon-button mobile-menu"
               aria-label="Toggle sidebar"
               onClick={() => setSidebar((v) => !v)}
             >
               <Icon name="menu" />
-            </button>
+            </HelpButton>
             <span className="project-breadcrumb">
               {project?.name || "Your workspace"}
             </span>
@@ -748,18 +755,24 @@ export default function App() {
             </span>
           </div>
           <div className="topbar-actions">
-            <button className="model-pill" onClick={() => setSettings(true)}>
+            <Info topic="start" />
+            <HelpButton
+              help="settings"
+              className="model-pill"
+              onClick={() => setSettings(true)}
+            >
               {model || "Connect a model"}
               <span>⌄</span>
-            </button>
-            <button
+            </HelpButton>
+            <HelpButton
+              help="context"
               className="icon-button"
               title="Project context"
               aria-label="Project context"
               onClick={() => setPanel(panel ? null : "files")}
             >
               <Icon name="files" />
-            </button>
+            </HelpButton>
           </div>
         </header>
         {error && (
@@ -779,6 +792,9 @@ export default function App() {
                 A workspace for thoughtful engineering
               </span>
               <h1>What are you building?</h1>
+              <div className="help-start">
+                Start here: how to use EthicSpark <Info topic="start" />
+              </div>
               <p>
                 Ask a question, share a document, or work with your project.
                 <br />
@@ -803,7 +819,8 @@ export default function App() {
                     "Help me assess the ethical implications of a software feature.",
                   ],
                 ].map(([title, text]) => (
-                  <button
+                  <HelpButton
+                    help="starter"
                     key={title}
                     onClick={() => {
                       setPrompt(text);
@@ -815,14 +832,18 @@ export default function App() {
                     />
                     <span>{title}</span>
                     <Icon name="arrow" size={14} />
-                  </button>
+                  </HelpButton>
                 ))}
               </div>
               {!projectId && (
-                <button className="welcome-link" onClick={linkFolder}>
+                <HelpButton
+                  help="folder"
+                  className="welcome-link"
+                  onClick={linkFolder}
+                >
                   <Icon name="folder" />
                   Link a project folder <span>optional</span>
-                </button>
+                </HelpButton>
               )}
             </div>
           ) : (
@@ -860,9 +881,12 @@ export default function App() {
                           <div className="response-error">
                             <strong>Response unavailable</strong>
                             <p>{m.text}</p>
-                            <button onClick={() => void send(true)}>
+                            <HelpButton
+                              help="retry"
+                              onClick={() => void send(true)}
+                            >
                               Retry with saved context
-                            </button>
+                            </HelpButton>
                           </div>
                         ) : (
                           <RichText text={m.text} />
@@ -874,7 +898,8 @@ export default function App() {
                               Catalogue context
                             </span>
                             {m.output.citations.map((c, i) => (
-                              <button
+                              <HelpButton
+                                help="citations"
                                 key={i}
                                 onClick={() => void inspectCitation(c)}
                               >
@@ -882,7 +907,7 @@ export default function App() {
                                 {c.actionIds.length
                                   ? " · " + c.actionIds.join(", ")
                                   : ""}
-                              </button>
+                              </HelpButton>
                             ))}
                           </div>
                         ) : null}
@@ -931,19 +956,21 @@ export default function App() {
                                 </details>
                               ) : (
                                 <div className="operation-buttons">
-                                  <button
+                                  <HelpButton
+                                    help="review"
                                     disabled={!native || busy || executing}
                                     onClick={() => void prepare(m, op)}
                                   >
                                     Review{" "}
                                     {op.kind === "write" ? "change" : "command"}
-                                  </button>
-                                  <button
+                                  </HelpButton>
+                                  <HelpButton
+                                    help="decline"
                                     disabled={busy || executing}
                                     onClick={() => void deny(m, op)}
                                   >
                                     Decline
-                                  </button>
+                                  </HelpButton>
                                   {!native && (
                                     <small>
                                       File changes and commands require the
@@ -956,7 +983,8 @@ export default function App() {
                           );
                         })}
                         {m.output?.artifacts.map((a, i) => (
-                          <button
+                          <HelpButton
+                            help="download"
                             className="artifact-card"
                             key={i}
                             onClick={() => download(a)}
@@ -969,12 +997,13 @@ export default function App() {
                               <small>Generated document · Download</small>
                             </span>
                             <Icon name="download" />
-                          </button>
+                          </HelpButton>
                         ))}
                         {m.status === "complete" && (
                           <div className="response-meta">
                             {m.model}
-                            <button
+                            <HelpButton
+                              help="copy"
                               onClick={() =>
                                 navigator.clipboard
                                   .writeText(m.text)
@@ -987,7 +1016,7 @@ export default function App() {
                               }
                             >
                               Copy
-                            </button>
+                            </HelpButton>
                           </div>
                         )}
                       </div>
@@ -1004,9 +1033,9 @@ export default function App() {
             {workspace && (
               <div className="workspace-chip">
                 <Icon name="folder" size={14} />
-                <button onClick={() => setPanel("files")}>
+                <HelpButton help="files" onClick={() => setPanel("files")}>
                   {workspace.name}
-                </button>
+                </HelpButton>
                 <span>
                   {folderChanged ? "Changed · refresh on send" : "Live folder"}
                 </span>
@@ -1019,18 +1048,22 @@ export default function App() {
                   <div key={a.id} title={a.extraction}>
                     <Icon name="attach" size={14} />
                     {a.name}
-                    <button
+                    <HelpButton
+                      help="removeAttachment"
                       aria-label={"Remove " + a.name}
                       onClick={() =>
                         setAttached((v) => v.filter((f) => f.id !== a.id))
                       }
                     >
                       ×
-                    </button>
+                    </HelpButton>
                   </div>
                 ))}
               </div>
             )}
+            <div className="help-field-heading">
+              Your message <Info topic="prompt" />
+            </div>
             <div
               className="prompt-box"
               onDragOver={(e) => e.preventDefault()}
@@ -1060,7 +1093,8 @@ export default function App() {
               />
               <div className="composer-tools">
                 <div>
-                  <button
+                  <HelpButton
+                    help="attach"
                     className="icon-button"
                     title="Attach files"
                     aria-label="Attach files"
@@ -1068,8 +1102,9 @@ export default function App() {
                     onClick={() => fileInput.current?.click()}
                   >
                     <Icon name="attach" />
-                  </button>
-                  <button
+                  </HelpButton>
+                  <HelpButton
+                    help="folder"
                     className="icon-button"
                     title="Link a folder"
                     aria-label="Link a folder"
@@ -1077,22 +1112,24 @@ export default function App() {
                     onClick={linkFolder}
                   >
                     <Icon name="folder" />
-                  </button>
+                  </HelpButton>
                   {uploading && (
                     <span className="composer-status">Uploading…</span>
                   )}
                   {busy && <span className="composer-status">{activity}</span>}
                 </div>
                 {busy || pending ? (
-                  <button
+                  <HelpButton
+                    help="stop"
                     className="send-button stop-button"
                     aria-label="Stop response"
                     onClick={() => void stop()}
                   >
                     <Icon name="stop" />
-                  </button>
+                  </HelpButton>
                 ) : (
-                  <button
+                  <HelpButton
+                    help="send"
                     className="send-button"
                     aria-label="Send message"
                     disabled={
@@ -1103,7 +1140,7 @@ export default function App() {
                     onClick={() => void send()}
                   >
                     <Icon name="send" />
-                  </button>
+                  </HelpButton>
                 )}
               </div>
             </div>
@@ -1118,12 +1155,13 @@ export default function App() {
               The catalogue informs relevant answers. File edits and commands
               require your permission.
               {thread && (
-                <button
+                <HelpButton
+                  help="continue"
                   onClick={() => void send(true)}
                   disabled={busy || executing}
                 >
                   Continue task
-                </button>
+                </HelpButton>
               )}
             </div>
           </div>
@@ -1132,24 +1170,28 @@ export default function App() {
       {panel && (
         <aside className="context-panel">
           <div className="context-header">
-            <strong>Project context</strong>
-            <button
+            <strong className="help-section-title">
+              Project context <Info topic="context" />
+            </strong>
+            <HelpButton
+              help="close"
               className="icon-button"
               aria-label="Close context"
               onClick={() => setPanel(null)}
             >
               <Icon name="close" />
-            </button>
+            </HelpButton>
           </div>
           <div className="context-tabs">
             {(["files", "artifacts", "activity"] as const).map((p) => (
-              <button
+              <HelpButton
+                help={p}
                 className={panel === p ? "active" : ""}
                 key={p}
                 onClick={() => setPanel(p)}
               >
                 {p.charAt(0).toUpperCase() + p.slice(1)}
-              </button>
+              </HelpButton>
             ))}
           </div>
           {panel === "files" ? (
@@ -1174,7 +1216,8 @@ export default function App() {
                   )}
                   <div className="file-tree">
                     {workspace.tree.map((path) => (
-                      <button
+                      <HelpButton
+                        help="file"
                         key={path}
                         className={paths.includes(path) ? "included" : ""}
                         onClick={() => void openFile(path)}
@@ -1184,10 +1227,11 @@ export default function App() {
                         {paths.includes(path) && (
                           <Icon name="check" size={12} />
                         )}
-                      </button>
+                      </HelpButton>
                     ))}
                   </div>
-                  <button
+                  <HelpButton
+                    help="unlink"
                     className="text-button"
                     onClick={() => {
                       if (native && projectId)
@@ -1198,7 +1242,7 @@ export default function App() {
                     }}
                   >
                     Unlink folder
-                  </button>
+                  </HelpButton>
                 </>
               ) : (
                 <div className="empty-context">
@@ -1208,7 +1252,9 @@ export default function App() {
                     Link a local folder to read current files and review
                     proposed changes.
                   </p>
-                  <button onClick={linkFolder}>Link folder</button>
+                  <HelpButton help="folder" onClick={linkFolder}>
+                    Link folder
+                  </HelpButton>
                   {!native && (
                     <small>
                       Live folder access is available in the desktop app. Run
@@ -1222,7 +1268,8 @@ export default function App() {
             <div className="context-body">
               {artifacts.length ? (
                 artifacts.map((a, i) => (
-                  <button
+                  <HelpButton
+                    help="download"
                     className="artifact-card"
                     key={i}
                     onClick={() => download(a)}
@@ -1232,7 +1279,7 @@ export default function App() {
                       <strong>{a.name}</strong>
                       <small>Download</small>
                     </span>
-                  </button>
+                  </HelpButton>
                 ))
               ) : (
                 <p className="context-description">
@@ -1249,6 +1296,7 @@ export default function App() {
                   Export conversation
                 </a>
               )}
+              {thread && <Info topic="export" />}
             </div>
           ) : (
             <div className="context-body">
@@ -1277,7 +1325,11 @@ export default function App() {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Model connection</DialogTitle>
+        <DialogTitle>
+          <span className="help-section-title">
+            Model connection <Info topic="settings" />
+          </span>
+        </DialogTitle>
         <DialogContent>
           <p className="settings-intro">
             Choose your assistant once. You can change it whenever you need.
@@ -1286,6 +1338,7 @@ export default function App() {
             <TextField
               select
               label="Provider"
+              helperText={<Info topic="provider" />}
               value={providers.length ? provider : ""}
               onChange={(e) => {
                 setProvider(e.target.value);
@@ -1301,6 +1354,7 @@ export default function App() {
             </TextField>
             <TextField
               label="Model ID"
+              helperText={<Info topic="model" />}
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder="Choose or enter an available model"
@@ -1311,12 +1365,13 @@ export default function App() {
                 <option key={m} value={m} />
               ))}
             </datalist>
-            <Button
+            <HelpMuiButton
+              help="loadModels"
               onClick={loadModels}
               disabled={!currentProvider?.configured}
             >
               Load available models
-            </Button>
+            </HelpMuiButton>
           </div>
           {currentProvider && !currentProvider.configured && (
             <Alert severity="info">
@@ -1352,6 +1407,9 @@ export default function App() {
                 : "Allow the configured local model server to process this project’s conversation and shared context."}
             </span>
           </label>
+          <div className="help-field-heading">
+            About processing permission <Info topic="consent" />
+          </div>
           <p className="settings-note">
             OpenAI/Claude use API credentials configured in the local .env. A
             consumer chat subscription is not an API key. See
@@ -1359,10 +1417,13 @@ export default function App() {
           </p>
           <a href="/?legacy=1" className="legacy-link">
             Open the earlier structured workflow
-          </a>
+          </a>{" "}
+          <Info topic="legacy" />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSettings(false)}>Done</Button>
+          <HelpMuiButton help="close" onClick={() => setSettings(false)}>
+            Done
+          </HelpMuiButton>
         </DialogActions>
       </Dialog>
       <Dialog
@@ -1371,7 +1432,11 @@ export default function App() {
         fullWidth
         maxWidth="xs"
       >
-        <DialogTitle>Create a project</DialogTitle>
+        <DialogTitle>
+          <span className="help-section-title">
+            Create a project <Info topic="projects" />
+          </span>
+        </DialogTitle>
         <DialogContent>
           <p>
             Give your conversations a home. You can link a folder now or later.
@@ -1380,21 +1445,30 @@ export default function App() {
             autoFocus
             fullWidth
             label="Project name"
+            helperText={<Info topic="projectName" />}
             placeholder="New project"
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNewProject(false)}>Cancel</Button>
-          <Button onClick={() => void createProject(false)}>Create</Button>
+          <HelpMuiButton help="cancel" onClick={() => setNewProject(false)}>
+            Cancel
+          </HelpMuiButton>
+          <HelpMuiButton
+            help="create"
+            onClick={() => void createProject(false)}
+          >
+            Create
+          </HelpMuiButton>
           {native && (
-            <Button
+            <HelpMuiButton
+              help="createLink"
               variant="contained"
               onClick={() => void createProject(true)}
             >
               Create and link folder
-            </Button>
+            </HelpMuiButton>
           )}
         </DialogActions>
       </Dialog>
@@ -1404,7 +1478,11 @@ export default function App() {
         fullWidth
         maxWidth="md"
       >
-        <DialogTitle>{fileView?.path}</DialogTitle>
+        <DialogTitle>
+          <span className="help-section-title">
+            {fileView?.path} <Info topic="filePreview" />
+          </span>
+        </DialogTitle>
         <DialogContent>
           <p className="settings-note">
             Current contents · Included in the next message’s context
@@ -1412,7 +1490,8 @@ export default function App() {
           <pre className="file-preview">{fileView?.text}</pre>
         </DialogContent>
         <DialogActions>
-          <Button
+          <HelpMuiButton
+            help="removeContext"
             onClick={() => {
               if (fileView)
                 setPaths((v) => v.filter((p) => p !== fileView.path));
@@ -1420,8 +1499,10 @@ export default function App() {
             }}
           >
             Remove from context
-          </Button>
-          <Button onClick={() => setFileView(null)}>Close</Button>
+          </HelpMuiButton>
+          <HelpMuiButton help="close" onClick={() => setFileView(null)}>
+            Close
+          </HelpMuiButton>
         </DialogActions>
       </Dialog>
       <Dialog
@@ -1431,7 +1512,8 @@ export default function App() {
         maxWidth="sm"
       >
         <DialogTitle>
-          {citation?.clusterId} · {citationSource?.title || "Catalogue context"}
+          <Info topic="citations" /> {citation?.clusterId} ·{" "}
+          {citationSource?.title || "Catalogue context"}
         </DialogTitle>
         <DialogContent>
           <p>{citationSource?.definition}</p>
@@ -1446,7 +1528,9 @@ export default function App() {
           </p>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCitation(null)}>Close</Button>
+          <HelpMuiButton help="close" onClick={() => setCitation(null)}>
+            Close
+          </HelpMuiButton>
         </DialogActions>
       </Dialog>
       <Dialog
@@ -1456,6 +1540,7 @@ export default function App() {
         maxWidth="lg"
       >
         <DialogTitle>
+          <Info topic="review" />{" "}
           {preview?.value.kind === "write"
             ? "Review proposed file change"
             : "Review proposed command"}
@@ -1503,27 +1588,35 @@ export default function App() {
         </DialogContent>
         <DialogActions>
           {executing ? (
-            <Button
+            <HelpMuiButton
+              help="stopCommand"
               onClick={() =>
                 preview && native?.stopCommand(preview.value.ticket)
               }
             >
               Stop command
-            </Button>
+            </HelpMuiButton>
           ) : (
             <>
-              <Button
+              <HelpMuiButton
+                help="decline"
                 onClick={() =>
                   preview && void deny(preview.message, preview.operation)
                 }
               >
                 Decline
-              </Button>
-              <Button onClick={() => setPreview(null)}>Close</Button>
-              <Button variant="contained" onClick={() => void approve()}>
+              </HelpMuiButton>
+              <HelpMuiButton help="close" onClick={() => setPreview(null)}>
+                Close
+              </HelpMuiButton>
+              <HelpMuiButton
+                help="permission"
+                variant="contained"
+                onClick={() => void approve()}
+              >
                 Request permission and{" "}
                 {preview?.value.kind === "write" ? "apply" : "run"}
-              </Button>
+              </HelpMuiButton>
             </>
           )}
         </DialogActions>

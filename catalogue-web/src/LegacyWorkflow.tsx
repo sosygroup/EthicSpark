@@ -1,3 +1,4 @@
+import { Info, HelpMuiButton, HelpTextField } from "./Help";
 import { useEffect, useState } from "react";
 import ProfileFields from "./ProfileFields";
 import ReasoningPanel from "./ReasoningPanel";
@@ -7,7 +8,6 @@ import {
   AccordionSummary,
   AccordionDetails,
   Box,
-  Button,
   Checkbox,
   Chip,
   CircularProgress,
@@ -27,7 +27,6 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from "@mui/material";
 import type {
@@ -94,7 +93,17 @@ async function api<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await response.json();
-  if(data?.profile?.fields && !data.profile.fields.some((f: Field)=>f.id==="additional")) data.profile.fields.push({id:"additional",value:"",status:"known",files:[],companyEthics:[]});
+  if (
+    data?.profile?.fields &&
+    !data.profile.fields.some((f: Field) => f.id === "additional")
+  )
+    data.profile.fields.push({
+      id: "additional",
+      value: "",
+      status: "known",
+      files: [],
+      companyEthics: [],
+    });
   if (!response.ok)
     throw new Error(data.detail || "The request failed. Please try again.");
   return data;
@@ -425,7 +434,9 @@ export default function App() {
       ["accepted", "edited"].includes(r.reviewStatus),
     ).length || 0;
   const unknowns = fields.filter((f) => f.status === "unknown").length;
-  const source = catalogueClusters.flatMap(c=>c.actions).find(a=>a.id===edit?.sourceActionId);
+  const source = catalogueClusters
+    .flatMap((c) => c.actions)
+    .find((a) => a.id === edit?.sourceActionId);
   const shown = clusters.filter((c) =>
     (c.id + " " + c.title + " " + c.definition + " " + c.concerns.join(" "))
       .toLowerCase()
@@ -453,9 +464,13 @@ export default function App() {
         >
           Project workspace
         </Typography>
+        <HelpMuiButton help="start" component="a" href="/">
+          Conversational workspace
+        </HelpMuiButton>
         <nav>
           {steps.map((s, i) => (
-            <Button
+            <HelpMuiButton
+              help={["profile", "clusters", "adaptation", "plan"][i]}
               key={s}
               fullWidth
               className={stage === i ? "selected-step" : ""}
@@ -473,21 +488,23 @@ export default function App() {
             >
               <span className="step-dot">{i + 1}</span>
               {s}
-            </Button>
+            </HelpMuiButton>
           ))}
         </nav>
         <Divider sx={{ my: 3 }} />
-        <Button
+        <HelpMuiButton
+          help="projects"
           onClick={() => openNew(false)}
           variant="outlined"
           disabled={busy || !versions.length}
         >
           + New project
-        </Button>
+        </HelpMuiButton>
         <div className="local-note">
           <strong>Catalogue workspace</strong>
           <p>
-            Local workspace. Reviewer names are self-reported. Model analysis runs only when you request it.
+            Local workspace. Reviewer names are self-reported. Model analysis
+            runs only when you request it.
           </p>
           <a href="/api/catalogue/versions" target="_blank" rel="noreferrer">
             Catalogue API ↗
@@ -511,7 +528,7 @@ export default function App() {
           </div>
           <div className="toolbar">
             {summaries.length > 0 && (
-              <TextField
+              <HelpTextField
                 select
                 label="Open project"
                 value={project?.id || ""}
@@ -525,9 +542,9 @@ export default function App() {
                     {p.name}
                   </MenuItem>
                 ))}
-              </TextField>
+              </HelpTextField>
             )}
-            <TextField
+            <HelpTextField
               label="Reviewer name"
               value={actor}
               onChange={(e) => setActor(e.target.value)}
@@ -538,18 +555,25 @@ export default function App() {
         </header>
         {busy && <LinearProgress aria-label="Saving or loading" />}
         <main className="main">
+          <div className="help-field-heading">
+            About this page{" "}
+            <Info
+              topic={["profile", "clusters", "adaptation", "plan"][stage]}
+            />
+          </div>
           {error && (
             <Alert
               severity="error"
               sx={{ mb: 3 }}
               action={
-                <Button
+                <HelpMuiButton
+                  help="reload"
                   color="inherit"
                   size="small"
                   onClick={() => window.location.reload()}
                 >
                   Reload
-                </Button>
+                </HelpMuiButton>
               }
             >
               {error}
@@ -599,26 +623,32 @@ export default function App() {
                   justifyContent="center"
                   sx={{ mt: 3 }}
                 >
-                  <Button
+                  <HelpMuiButton
+                    help="projects"
                     variant="contained"
                     size="large"
                     onClick={() => openNew(false)}
                     disabled={!versions.length}
                   >
                     Create a project
-                  </Button>
-                  <Button
+                  </HelpMuiButton>
+                  <HelpMuiButton
+                    help="example"
                     variant="outlined"
                     size="large"
                     onClick={() => openNew(true)}
                     disabled={!versions.length}
                   >
                     Start with an example
-                  </Button>
+                  </HelpMuiButton>
                 </Stack>
-                <Button sx={{ mt: 2 }} onClick={() => setStage(1)}>
+                <HelpMuiButton
+                  help="clusters"
+                  sx={{ mt: 2 }}
+                  onClick={() => setStage(1)}
+                >
                   Explore the catalogue →
-                </Button>
+                </HelpMuiButton>
                 {!versions.length && (
                   <Alert severity="warning" sx={{ mt: 3 }}>
                     No catalogue has been imported. Check the service import
@@ -692,15 +722,24 @@ export default function App() {
                         }
                       />
                     </div>
-                    <ProfileFields base={base} fields={fields} setFields={setFields} disabled={busy} onError={setError} onUploading={setBusy} />
+                    <ProfileFields
+                      base={base}
+                      fields={fields}
+                      setFields={setFields}
+                      disabled={busy}
+                      onError={setError}
+                      onUploading={setBusy}
+                    />
                     <div className="sticky-actions">
-                      <Button
+                      <HelpMuiButton
+                        help="saveDraft"
                         disabled={busy || !actor.trim()}
                         onClick={() => saveProfile(false)}
                       >
                         Save draft
-                      </Button>
-                      <Button
+                      </HelpMuiButton>
+                      <HelpMuiButton
+                        help="confirm"
                         variant="contained"
                         disabled={
                           busy ||
@@ -710,11 +749,15 @@ export default function App() {
                         onClick={() => saveProfile(true)}
                       >
                         Confirm profile
-                      </Button>
+                      </HelpMuiButton>
                       {project.profile.confirmed && !dirty && (
-                        <Button variant="contained" onClick={() => go(1)}>
+                        <HelpMuiButton
+                          help="clusters"
+                          variant="contained"
+                          onClick={() => go(1)}
+                        >
                           Continue to clusters →
-                        </Button>
+                        </HelpMuiButton>
                       )}
                     </div>
                   </Paper>
@@ -729,14 +772,32 @@ export default function App() {
               )}
               {stage === 1 && (
                 <>
-                  {project && <ReasoningPanel key={project.id} project={project} actor={actor} clusters={catalogueClusters} disabled={busy}
-                    onError={setError} onBusy={setBusy} onApply={p=>{setProject(p);setIndex(0);setStage(2);setNotice("Model proposal saved. Review and accept each action separately.");void refreshList();}} />}
+                  {project && (
+                    <ReasoningPanel
+                      key={project.id}
+                      project={project}
+                      actor={actor}
+                      clusters={catalogueClusters}
+                      disabled={busy}
+                      onError={setError}
+                      onBusy={setBusy}
+                      onApply={(p) => {
+                        setProject(p);
+                        setIndex(0);
+                        setStage(2);
+                        setNotice(
+                          "Model proposal saved. Review and accept each action separately.",
+                        );
+                        void refreshList();
+                      }}
+                    />
+                  )}
                   <Paper className="panel" sx={{ mb: 3 }}>
                     <div
                       className="toolbar"
                       style={{ justifyContent: "space-between" }}
                     >
-                      <TextField
+                      <HelpTextField
                         label="Search clusters"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -747,7 +808,8 @@ export default function App() {
                         references
                       </Typography>
                       {project && (
-                        <Button
+                        <HelpMuiButton
+                          help="selection"
                           variant="contained"
                           disabled={
                             busy || !project.profile.confirmed || !actor.trim()
@@ -755,11 +817,14 @@ export default function App() {
                           onClick={saveSelection}
                         >
                           Save selection{selection.length ? " and adapt →" : ""}
-                        </Button>
+                        </HelpMuiButton>
                       )}
                     </div>
                     <div className="selection-note" style={{ marginTop: 20 }}>
-                      Select relevant clusters manually, or review a model proposal above. Each selected cluster has six source actions; assess their suitability for your selected phases.
+                      Select relevant clusters manually, or review a model
+                      proposal above. Each selected cluster has six source
+                      actions; assess their suitability for your selected
+                      phases.
                     </div>
                     {project && !project.profile.confirmed && (
                       <Alert severity="info" sx={{ mt: 2 }}>
@@ -815,29 +880,39 @@ export default function App() {
                           alignItems="center"
                           sx={{ mt: 2 }}
                         >
-                          <Button
+                          <HelpMuiButton
+                            help="details"
                             size="small"
                             onClick={() => inspect(c.id)}
                             disabled={busy}
                           >
                             View details
-                          </Button>
+                          </HelpMuiButton>
                           {project && (
-                            <FormControlLabel
-                              sx={{ mr: 0 }}
-                              control={
-                                <Checkbox
-                                  checked={selection.includes(c.id)}
-                                  disabled={!project.profile.confirmed || busy}
-                                  onChange={(e) =>
-                                    setSelection(
-                                      e.target.checked ? [...selection, c.id] : selection.filter(id=>id!==c.id),
-                                    )
-                                  }
-                                />
-                              }
-                              label="Select"
-                            />
+                            <>
+                              <FormControlLabel
+                                sx={{ mr: 0 }}
+                                control={
+                                  <Checkbox
+                                    checked={selection.includes(c.id)}
+                                    disabled={
+                                      !project.profile.confirmed || busy
+                                    }
+                                    onChange={(e) =>
+                                      setSelection(
+                                        e.target.checked
+                                          ? [...selection, c.id]
+                                          : selection.filter(
+                                              (id) => id !== c.id,
+                                            ),
+                                      )
+                                    }
+                                  />
+                                }
+                                label="Select"
+                              />{" "}
+                              <Info topic="clusters" />
+                            </>
                           )}
                         </Stack>
                       </Paper>
@@ -856,7 +931,8 @@ export default function App() {
                       >
                         {selection.length} cluster selected
                       </Typography>
-                      <Button
+                      <HelpMuiButton
+                        help="selection"
                         variant="contained"
                         disabled={
                           busy || !project.profile.confirmed || !actor.trim()
@@ -864,7 +940,7 @@ export default function App() {
                         onClick={saveSelection}
                       >
                         Save selection{selection.length ? " and adapt →" : ""}
-                      </Button>
+                      </HelpMuiButton>
                     </div>
                   )}
                 </>
@@ -876,11 +952,12 @@ export default function App() {
                 <Alert
                   severity="info"
                   action={
-                    <Button
+                    <HelpMuiButton
+                      help="profile"
                       onClick={() => go(project.profile.confirmed ? 1 : 0)}
                     >
                       Continue setup
-                    </Button>
+                    </HelpMuiButton>
                   }
                 >
                   Confirm your application profile and select a cluster to start
@@ -897,34 +974,48 @@ export default function App() {
                         className="panel action-nav"
                         sx={{ p: "12px!important", alignSelf: "start" }}
                       >
-                        {project.recommendations.map((r, i) => (
-                          (()=>{const a=catalogueClusters.flatMap(c=>c.actions).find(a=>a.id===r.sourceActionId);const c=(a?.category||"Action").toLowerCase();return (
-                          <Button
-                            key={r.sourceActionId}
-                            fullWidth
-                            sx={{
-                              justifyContent: "space-between",
-                              py: 1.5,
-                              mb: 0.5,
-                              bgcolor: index === i ? "#e8f0fe" : undefined,
-                              color:
-                                index === i ? "primary.main" : "text.secondary",
-                            }}
-                            onClick={() => {
-                              if (discard()) setIndex(i);
-                            }}
-                            disabled={busy}
-                          >
-                            <span>{r.sourceActionId}<br/>{c.charAt(0).toUpperCase()+c.slice(1)}</span>
-                            <span>
-                              {["accepted", "edited"].includes(
-                                project.recommendations[i]?.reviewStatus,
-                              )
-                                ? "✓"
-                                : i + 1}
-                            </span>
-                          </Button>);})()
-                        ))}
+                        {project.recommendations.map((r, i) =>
+                          (() => {
+                            const a = catalogueClusters
+                              .flatMap((c) => c.actions)
+                              .find((a) => a.id === r.sourceActionId);
+                            const c = (a?.category || "Action").toLowerCase();
+                            return (
+                              <HelpMuiButton
+                                help="adaptation"
+                                key={r.sourceActionId}
+                                fullWidth
+                                sx={{
+                                  justifyContent: "space-between",
+                                  py: 1.5,
+                                  mb: 0.5,
+                                  bgcolor: index === i ? "#e8f0fe" : undefined,
+                                  color:
+                                    index === i
+                                      ? "primary.main"
+                                      : "text.secondary",
+                                }}
+                                onClick={() => {
+                                  if (discard()) setIndex(i);
+                                }}
+                                disabled={busy}
+                              >
+                                <span>
+                                  {r.sourceActionId}
+                                  <br />
+                                  {c.charAt(0).toUpperCase() + c.slice(1)}
+                                </span>
+                                <span>
+                                  {["accepted", "edited"].includes(
+                                    project.recommendations[i]?.reviewStatus,
+                                  )
+                                    ? "✓"
+                                    : i + 1}
+                                </span>
+                              </HelpMuiButton>
+                            );
+                          })(),
+                        )}
                         <Divider sx={{ my: 1 }} />
                         <Typography variant="caption" color="text.secondary">
                           Use any category in any order.
@@ -938,12 +1029,28 @@ export default function App() {
                           sx={{ mb: 2 }}
                         >
                           <Typography variant="h6">
-                            {source.id} · {source.category.charAt(0)+source.category.slice(1).toLowerCase()}
+                            {source.id} ·{" "}
+                            {source.category.charAt(0) +
+                              source.category.slice(1).toLowerCase()}
                           </Typography>
                           <Status value={edit.reviewStatus} />
                         </Stack>
-                        <Alert severity={edit.applicability === "not_applicable" ? "warning" : "info"} sx={{mb:2}}>
-                          Phase suitability: {(edit.applicability||"suitable").replaceAll("_"," ")}. {edit.applicabilityReason||"Review suitability against your current lifecycle phases."}
+                        <Alert
+                          severity={
+                            edit.applicability === "not_applicable"
+                              ? "warning"
+                              : "info"
+                          }
+                          sx={{ mb: 2 }}
+                        >
+                          Phase suitability:{" "}
+                          {(edit.applicability || "suitable").replaceAll(
+                            "_",
+                            " ",
+                          )}
+                          .{" "}
+                          {edit.applicabilityReason ||
+                            "Review suitability against your current lifecycle phases."}
                         </Alert>
                         <div className="two-col">
                           <Paper className="panel source">
@@ -954,7 +1061,11 @@ export default function App() {
                               Original catalogue
                             </Typography>
                             <Typography fontWeight={600} sx={{ mt: 1, mb: 2 }}>
-                              {catalogueClusters.find(c=>c.actions.some(a=>a.id===source.id))?.title}
+                              {
+                                catalogueClusters.find((c) =>
+                                  c.actions.some((a) => a.id === source.id),
+                                )?.title
+                              }
                             </Typography>
                             <Typography className="source-text">
                               {source.text}
@@ -1019,13 +1130,35 @@ export default function App() {
                               Your application-specific adaptation
                             </Typography>
                             <Stack spacing={2.5} sx={{ mt: 2 }}>
-                              <TextField select label="Phase suitability" value={edit.applicability||"suitable"} onChange={e=>patch("applicability",e.target.value)}>
-                                <MenuItem value="suitable">Suitable for selected phases</MenuItem>
-                                <MenuItem value="not_applicable">Not applicable for selected phases</MenuItem>
-                                <MenuItem value="uncertain">Uncertain — needs information</MenuItem>
-                              </TextField>
-                              <TextField label="Phase suitability explanation" value={edit.applicabilityReason||""} multiline minRows={2} onChange={e=>patch("applicabilityReason",e.target.value)} helperText="Explain any change to the model's phase assessment before accepting."/>
-                              <TextField
+                              <HelpTextField
+                                select
+                                label="Phase suitability"
+                                value={edit.applicability || "suitable"}
+                                onChange={(e) =>
+                                  patch("applicability", e.target.value)
+                                }
+                              >
+                                <MenuItem value="suitable">
+                                  Suitable for selected phases
+                                </MenuItem>
+                                <MenuItem value="not_applicable">
+                                  Not applicable for selected phases
+                                </MenuItem>
+                                <MenuItem value="uncertain">
+                                  Uncertain — needs information
+                                </MenuItem>
+                              </HelpTextField>
+                              <HelpTextField
+                                label="Phase suitability explanation"
+                                value={edit.applicabilityReason || ""}
+                                multiline
+                                minRows={2}
+                                onChange={(e) =>
+                                  patch("applicabilityReason", e.target.value)
+                                }
+                                helperText="Explain any change to the model's phase assessment before accepting."
+                              />
+                              <HelpTextField
                                 label="Concern scenario"
                                 value={edit.scenario}
                                 onChange={(e) =>
@@ -1035,7 +1168,7 @@ export default function App() {
                                 minRows={2}
                                 helperText="Describe the behaviour, affected people and plausible adverse effect."
                               />
-                              <TextField
+                              <HelpTextField
                                 label="Adapted action"
                                 value={edit.action}
                                 onChange={(e) =>
@@ -1044,7 +1177,7 @@ export default function App() {
                                 multiline
                                 minRows={3}
                               />
-                              <TextField
+                              <HelpTextField
                                 label="Expected evidence"
                                 value={edit.evidence}
                                 onChange={(e) =>
@@ -1053,7 +1186,7 @@ export default function App() {
                                 multiline
                                 minRows={2}
                               />
-                              <TextField
+                              <HelpTextField
                                 label="Validation criterion"
                                 value={edit.criterion}
                                 onChange={(e) =>
@@ -1063,20 +1196,20 @@ export default function App() {
                                 minRows={2}
                                 helperText="What would a human reviewer check? Leave blank to record an unresolved criterion."
                               />
-                              <TextField
+                              <HelpTextField
                                 label="Responsible owner"
                                 value={edit.owner}
                                 onChange={(e) => patch("owner", e.target.value)}
                                 placeholder="Unassigned"
                                 helperText="Map the suggested catalogue roles to your actual team."
                               />
-                              <TextField
+                              <HelpTextField
                                 label="Applicable phases"
                                 value={phaseText}
                                 onChange={(e) => setPhaseText(e.target.value)}
                                 helperText="Separate phase names with semicolons."
                               />
-                              <TextField
+                              <HelpTextField
                                 label="Adaptation rationale"
                                 value={edit.rationale}
                                 onChange={(e) =>
@@ -1085,7 +1218,7 @@ export default function App() {
                                 multiline
                                 minRows={2}
                               />
-                              <TextField
+                              <HelpTextField
                                 label="Review reason or unresolved question"
                                 value={edit.reason}
                                 onChange={(e) =>
@@ -1109,16 +1242,23 @@ export default function App() {
                             Not started.
                           </Typography>
                           <div className="toolbar">
-                            <Button
+                            <HelpMuiButton
+                              help="saveEdit"
                               variant="outlined"
                               disabled={busy || !actor.trim()}
                               onClick={() => review("save")}
                             >
                               Save edit
-                            </Button>
-                            <Button
+                            </HelpMuiButton>
+                            <HelpMuiButton
+                              help="accept"
                               variant="contained"
-                              disabled={busy || !actor.trim() || (edit.applicability !== undefined && edit.applicability !== "suitable")}
+                              disabled={
+                                busy ||
+                                !actor.trim() ||
+                                (edit.applicability !== undefined &&
+                                  edit.applicability !== "suitable")
+                              }
                               onClick={() => review("accept")}
                             >
                               Accept
@@ -1126,24 +1266,30 @@ export default function App() {
                               edit.evidence !== source.evidence
                                 ? " edited version"
                                 : ""}
-                            </Button>
-                            <Button
+                            </HelpMuiButton>
+                            <HelpMuiButton
+                              help="await"
                               color="warning"
                               disabled={busy || !actor.trim()}
                               onClick={() => review("awaiting_information")}
                             >
                               Await information
-                            </Button>
-                            <Button
+                            </HelpMuiButton>
+                            <HelpMuiButton
+                              help="reject"
                               color="error"
                               disabled={busy || !actor.trim()}
                               onClick={() => review("reject")}
                             >
                               Reject
-                            </Button>
-                            <Button sx={{ ml: "auto" }} onClick={() => go(3)}>
+                            </HelpMuiButton>
+                            <HelpMuiButton
+                              help="plan"
+                              sx={{ ml: "auto" }}
+                              onClick={() => go(3)}
+                            >
                               Review project plan →
-                            </Button>
+                            </HelpMuiButton>
                           </div>
                           {dirty && (
                             <Typography
@@ -1186,7 +1332,7 @@ export default function App() {
                       className="toolbar"
                       style={{ justifyContent: "space-between" }}
                     >
-                      <TextField
+                      <HelpTextField
                         select
                         SelectProps={{ displayEmpty: true }}
                         InputLabelProps={{ shrink: true }}
@@ -1201,9 +1347,10 @@ export default function App() {
                             Approved version {p.version}
                           </MenuItem>
                         ))}
-                      </TextField>
+                      </HelpTextField>
                       <div className="toolbar">
-                        <Button
+                        <HelpMuiButton
+                          help="history"
                           onClick={() =>
                             work(async () =>
                               setHistory(await api<Event[]>(base + "/history")),
@@ -1211,26 +1358,41 @@ export default function App() {
                           }
                         >
                           Decision history
-                        </Button>
-                        <Button
+                        </HelpMuiButton>
+                        <HelpMuiButton
+                          help="exportPlan"
                           variant="outlined"
                           component="a"
                           download
-                          href={busy ? undefined : base + "/export?format=json" + (planId ? "&plan=" + planId : "")}
+                          href={
+                            busy
+                              ? undefined
+                              : base +
+                                "/export?format=json" +
+                                (planId ? "&plan=" + planId : "")
+                          }
                           disabled={busy}
                         >
                           Export JSON
-                        </Button>
-                        <Button
+                        </HelpMuiButton>
+                        <HelpMuiButton
+                          help="exportPlan"
                           variant="outlined"
                           component="a"
                           download
-                          href={busy ? undefined : base + "/export?format=html" + (planId ? "&plan=" + planId : "")}
+                          href={
+                            busy
+                              ? undefined
+                              : base +
+                                "/export?format=html" +
+                                (planId ? "&plan=" + planId : "")
+                          }
                           disabled={busy}
                         >
                           Export report
-                        </Button>
-                        <Button
+                        </HelpMuiButton>
+                        <HelpMuiButton
+                          help="approvePlan"
                           variant="contained"
                           disabled={
                             busy ||
@@ -1249,7 +1411,7 @@ export default function App() {
                           }
                         >
                           Approve plan version
-                        </Button>
+                        </HelpMuiButton>
                       </div>
                     </div>
                     <Alert
@@ -1261,10 +1423,25 @@ export default function App() {
                         : "Draft plan. Only accepted recommendations will enter an approved version."}{" "}
                       Implementation remains Not started.
                     </Alert>
-                    {viewPlan?.reasoning && <Alert severity="info" sx={{mt:2}}>
-                      LLM-assisted proposal: {viewPlan.reasoning.provider} / {viewPlan.reasoning.model}. Actions and label characteristics remain subject to your review.
-                    </Alert>}
-                    {viewPlan?.reasoning?.output.clusters.map(c=><Box key={c.clusterId} sx={{mt:2}}><Typography fontWeight={600}>{c.clusterId} · Selected ethics label characteristics</Typography>{c.mappings.map((m,i)=><Typography variant="body2" key={i}>{m.card} → {m.characteristic}</Typography>)}</Box>)}
+                    {viewPlan?.reasoning && (
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        LLM-assisted proposal: {viewPlan.reasoning.provider} /{" "}
+                        {viewPlan.reasoning.model}. Actions and label
+                        characteristics remain subject to your review.
+                      </Alert>
+                    )}
+                    {viewPlan?.reasoning?.output.clusters.map((c) => (
+                      <Box key={c.clusterId} sx={{ mt: 2 }}>
+                        <Typography fontWeight={600}>
+                          {c.clusterId} · Selected ethics label characteristics
+                        </Typography>
+                        {c.mappings.map((m, i) => (
+                          <Typography variant="body2" key={i}>
+                            {m.card} → {m.characteristic}
+                          </Typography>
+                        ))}
+                      </Box>
+                    ))}
                     {viewPlan && (
                       <Accordion
                         defaultExpanded
@@ -1295,7 +1472,7 @@ export default function App() {
                       </Accordion>
                     )}
                     <div className="toolbar" style={{ marginTop: 24 }}>
-                      <TextField
+                      <HelpTextField
                         select
                         label="Review status"
                         value={statusFilter}
@@ -1308,13 +1485,13 @@ export default function App() {
                             {label}
                           </MenuItem>
                         ))}
-                      </TextField>
-                      <TextField
+                      </HelpTextField>
+                      <HelpTextField
                         label="Filter owner"
                         value={ownerFilter}
                         onChange={(e) => setOwnerFilter(e.target.value)}
                       />
-                      <TextField
+                      <HelpTextField
                         label="Filter phase"
                         value={phaseFilter}
                         onChange={(e) => setPhaseFilter(e.target.value)}
@@ -1363,7 +1540,8 @@ export default function App() {
                                     {s.id}
                                   </Typography>
                                   {!planId && (
-                                    <Button
+                                    <HelpMuiButton
+                                      help="adaptation"
                                       size="small"
                                       onClick={() => {
                                         if (discard()) {
@@ -1377,7 +1555,7 @@ export default function App() {
                                       }}
                                     >
                                       Edit
-                                    </Button>
+                                    </HelpMuiButton>
                                   )}
                                 </TableCell>
                                 <TableCell sx={{ maxWidth: 420 }}>
@@ -1446,14 +1624,14 @@ export default function App() {
             manages its version automatically.
           </Typography>
           <Stack spacing={3}>
-            <TextField
+            <HelpTextField
               autoFocus
               label="Project name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               fullWidth
             />
-            <TextField
+            <HelpTextField
               label="Your reviewer name"
               value={actor}
               onChange={(e) => setActor(e.target.value)}
@@ -1469,16 +1647,21 @@ export default function App() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNewOpen(false)} disabled={busy}>
+          <HelpMuiButton
+            help="cancel"
+            onClick={() => setNewOpen(false)}
+            disabled={busy}
+          >
             Cancel
-          </Button>
-          <Button
+          </HelpMuiButton>
+          <HelpMuiButton
+            help="create"
             variant="contained"
             disabled={busy || !newName.trim() || !actor.trim()}
             onClick={create}
           >
             Create project
-          </Button>
+          </HelpMuiButton>
         </DialogActions>
       </Dialog>
       <Dialog
@@ -1535,7 +1718,9 @@ export default function App() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetails(null)}>Close</Button>
+          <HelpMuiButton help="close" onClick={() => setDetails(null)}>
+            Close
+          </HelpMuiButton>
         </DialogActions>
       </Dialog>
       <Dialog
@@ -1544,7 +1729,9 @@ export default function App() {
         fullWidth
         maxWidth="md"
       >
-        <DialogTitle>Decision history</DialogTitle>
+        <DialogTitle>
+          Decision history <Info topic="history" />
+        </DialogTitle>
         <DialogContent>
           {history?.map((e) => (
             <div key={e.id} className="history-item">
@@ -1573,7 +1760,9 @@ export default function App() {
           ))}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setHistory(null)}>Close</Button>
+          <HelpMuiButton help="close" onClick={() => setHistory(null)}>
+            Close
+          </HelpMuiButton>
         </DialogActions>
       </Dialog>
       <Dialog
@@ -1582,7 +1771,9 @@ export default function App() {
         fullWidth
         maxWidth="md"
       >
-        <DialogTitle>Approve a plan version</DialogTitle>
+        <DialogTitle>
+          Approve a plan version <Info topic="approvePlan" />
+        </DialogTitle>
         <DialogContent>
           <Typography>
             Approval creates an immutable snapshot of accepted recommendations.
@@ -1612,12 +1803,21 @@ export default function App() {
           <Typography variant="body2">Approving as: {actor}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setApproval(null)} disabled={busy}>
+          <HelpMuiButton
+            help="cancel"
+            onClick={() => setApproval(null)}
+            disabled={busy}
+          >
             Cancel
-          </Button>
-          <Button variant="contained" onClick={approve} disabled={busy}>
+          </HelpMuiButton>
+          <HelpMuiButton
+            help="approvePlan"
+            variant="contained"
+            onClick={approve}
+            disabled={busy}
+          >
             Approve with recorded gaps
-          </Button>
+          </HelpMuiButton>
         </DialogActions>
       </Dialog>
       <Snackbar

@@ -1,3 +1,4 @@
+import { Info } from "./Help";
 import { useEffect, useState } from "react";
 
 export default function Diagram({ code }: { code: string }) {
@@ -41,7 +42,9 @@ export default function Diagram({ code }: { code: string }) {
         <p>The diagram could not be rendered. Its source is available below.</p>
       )}
       <details>
-        <summary>Diagram source</summary>
+        <summary>
+          Diagram source <Info topic="diagram" />
+        </summary>
         <pre>{code}</pre>
       </details>
     </figure>

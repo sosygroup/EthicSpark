@@ -84,3 +84,9 @@ Browser QA used a clearly labelled local UI fixture (not a model-generated answe
 This checks implementation behaviour, not expert usability, live-provider quality, complete prompt-injection robustness or equivalence to Codex's security model. Approved native commands run with user permissions; the MVP does not provide an OS command sandbox.
 
 The final verification passed **28 Java/PostgreSQL tests and seven native-agent tests (35 total)**. Added Office attachment checks cover XLS/XLSX formula text without evaluation and PPTX slide text. Native checks also cover UTF-8 BOM round trips and force termination when a child ignores a graceful stop. Browser inspection at 1440 px and 500 px showed no page-level horizontal overflow; the generated Mermaid fixture rendered without browser errors, the artefact appeared in the context panel and C-01 opened the current source definition.
+
+### Contextual explanations — 16 October 2026
+
+Added English, click-to-open information dialogs beside conversational-workspace sections, actions and fields, including disabled actions. The earlier structured workflow has page guidance and action/field explanations. The top-bar information control opens the first-use guide.
+
+Validation: Docker production build completed successfully (TypeScript checking and Vite build); local application returned healthy. Browser checks covered the first-use guide, disabled-operation help, model settings, a help dialog opened over the settings dialog, Escape dismissal with focus restored to the information control, and guidance in the earlier profile/cluster/adaptation/plan interface. The primary workspace had no horizontal overflow at 1440 and 390 CSS pixels, no nested button elements, and no captured browser errors/warnings. No model request or project-file operation was performed for these help checks. Screenshot: `screenshots/contextual-help-guide.png`.
