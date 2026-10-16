@@ -97,6 +97,7 @@ class AssistantWorkflowIT {
     @Test void startsFromOnePromptWithoutProfileOrClusterSelectionAndPersistsRichOutput() {
         Thread t=conversation();var sent=service.send(t.id(),request(t,"Help me design a Java API.",null,false));
         assertThat(sent.messages()).hasSize(2);assertThat(sent.messages().getLast().status()).isEqualTo("complete");assertThat(sent.messages().getLast().output().artifacts().getFirst().name()).isEqualTo("notes.md");
+        assertThat(sent.messages().getLast().metrics().contextPreparationSeconds()).isGreaterThanOrEqualTo(0);assertThat(sent.messages().getLast().metrics().requestSeconds()).isGreaterThanOrEqualTo(0);assertThat(sent.messages().getLast().metrics().loadSeconds()).isNull();
         assertThat(sent.messages().getLast().inputSha256()).hasSize(64);assertThat(service.thread(t.id())).isEqualTo(sent);
         assertThat(db.queryForObject("SELECT count(*) FROM profile_version WHERE project_id=?",Integer.class,t.projectId())).isZero();
         assertThat(INPUT.get()).contains("Do NOT ask the user to complete a profile","general software development assistant","C-24","184").doesNotContain("OPENAI_API_KEY");

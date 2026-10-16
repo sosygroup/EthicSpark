@@ -35,6 +35,22 @@ export type Output = {
   operations: Operation[];
   artifacts: Artifact[];
 };
+export type ModelMetrics = {
+  requestSeconds: number;
+  loadSeconds: number | null;
+  promptSeconds: number | null;
+  generationSeconds: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  tokensPerSecond: number | null;
+  contextPreparationSeconds: number | null;
+};
+export type ModelPreparation = {
+  model: string;
+  keepAliveMinutes: number;
+  requestSeconds: number;
+  loadSeconds: number | null;
+};
 export type Message = {
   id: string;
   role: string;
@@ -47,6 +63,7 @@ export type Message = {
   contextManifest: FileContext[];
   output: Output | null;
   inputSha256: string;
+  metrics?: ModelMetrics | null;
 };
 export type Receipt = {
   id?: string;

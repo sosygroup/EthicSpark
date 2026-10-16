@@ -10,6 +10,9 @@ You can also **Explore catalogue** without configuring a model. Browse source cl
 
 ## Latest development update — 16 October 2026
 
+- **Model loading feedback:** an animated gauge in Model settings shows preparation activity and elapsed time, without estimating a loading percentage.
+- **Ollama memory controls:** choose 5, 30 or 60 minutes, or a custom duration per model; use **Unload model now** to release it without deleting installed files.
+- **Ollama preparation and diagnostics:** optional automatic model preloading, configurable 30-minute retention and persisted response timing for loading, prompt processing and generation. Inspect **Model settings** and each answer’s **Response timing**. See [the performance guide](docs/CONVERSATIONAL_WORKSPACE.md#ollama-preparation-and-performance-diagnostics).
 - **Explore catalogue** independently of AI: search clusters/actions, filter by category, SDLC phase and ethics label, inspect all references and import notes, and switch imported versions. Available from the workspace or directly at `/?catalogue=1`; no API key, Ollama or project is required.
 - Project **⋯** menu: Rename project, Open folder in the desktop system file manager, and confirmed Delete project to a restorable Trash. Local project files are not deleted.
 - Browser-mode banner explains native-only features and includes the copyable `./scripts/desktop.sh` command. Contextual explanations remain for complex operations; redundant information icons on familiar buttons have been removed.

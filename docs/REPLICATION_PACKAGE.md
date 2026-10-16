@@ -58,3 +58,7 @@ Public visibility permits anyone to inspect the repository. Write access is mana
 ## Model-independent inspection
 
 The source catalogue can be inspected through **Explore catalogue** or `http://localhost:8082/?catalogue=1` after starting the local Docker stack. This path uses read-only catalogue endpoints and requires neither cloud credentials nor a local model. It exposes version provenance, source-review notes, original actions and bibliographic records, enabling dataset inspection separately from model-dependent assistant behaviour. It does not resolve the source-review warnings or constitute an expert evaluation of the tool.
+
+## Local-model performance records
+
+New assistant responses retain optional request timing and provider-reported Ollama performance metrics alongside their conversation record. Preload measurements are shown separately in Model settings. Record hardware, model ID, runtime/version, thinking settings, context/output limits, retention period and whether a request was cold or warm when reporting performance. A single smoke check and these implementation diagnostics do not establish a speedup, model quality or expert usability. Earlier responses have no retroactive metrics. Native Ollama endpoints must be available through the configured backend base URL.

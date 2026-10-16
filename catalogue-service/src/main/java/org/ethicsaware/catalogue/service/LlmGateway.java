@@ -17,7 +17,60 @@ import static org.ethicsaware.catalogue.service.Reasoning.*;
 @Component
 public class LlmGateway {
     record Settings(String id,String name,String url,String key,boolean external) {}
-    record Result(String text,String request) {}
+    public record Metrics(double requestSeconds,Double loadSeconds,Double promptSeconds,Double generationSeconds,Long inputTokens,Long outputTokens,Double tokensPerSecond,Double contextPreparationSeconds) {
+        Metrics withPreparation(double seconds) {return new Metrics(requestSeconds,loadSeconds,promptSeconds,generationSeconds,inputTokens,outputTokens,tokensPerSecond,seconds);}
+    }
+    record Result(String text,String request,Metrics metrics) {}
+    public record PrepareRequest(String model,Integer keepAliveMinutes) {
+        public PrepareRequest(String model) {this(model,null);}
+    }
+    public record UnloadRequest(String model) {}
+    public record Unloaded(String model,boolean unloaded) {}
+    private final java.util.concurrent.ConcurrentHashMap<String,java.util.concurrent.locks.ReentrantReadWriteLock> modelLocks=new java.util.concurrent.ConcurrentHashMap<>();
+    private java.util.concurrent.locks.ReentrantReadWriteLock modelLock(String model) {return modelLocks.computeIfAbsent(model,k->new java.util.concurrent.locks.ReentrantReadWriteLock());}
+    private String installedModel(String value) {
+        if(value==null||value.isBlank()||value.length()>200)throw failure(HttpStatus.BAD_REQUEST,"Choose an installed Ollama model.");
+        String model=value.strip();if(!models("ollama").contains(model))throw failure(HttpStatus.BAD_REQUEST,"Choose an exact installed model ID. Load available models first.");return model;
+    }
+    public Unloaded unload(UnloadRequest request) {
+        String model=installedModel(request==null?null:request.model());var lock=modelLock(model).writeLock();
+        if(!lock.tryLock())throw failure(HttpStatus.CONFLICT,"The model is preparing or answering a request. Wait before unloading it.");
+        try {
+            JsonNode response=exchange(nativeOllama(),"/api/generate",json.writeValueAsString(Map.of("model",model,"stream",false,"keep_alive",0)),Duration.ofSeconds(30));
+            if(!response.path("done").asBoolean()||!response.path("done_reason").asText().equals("unload"))throw failure(HttpStatus.BAD_GATEWAY,"Ollama did not confirm model unloading.");
+            return new Unloaded(model,true);
+        }finally{lock.unlock();}
+    }
+    public record Preparation(String model,int keepAliveMinutes,double requestSeconds,Double loadSeconds) {}
+    private final java.util.concurrent.ConcurrentHashMap<String,java.util.concurrent.CompletableFuture<Preparation>> preparations=new java.util.concurrent.ConcurrentHashMap<>();
+    private static double seconds(long nanos) {return nanos/1_000_000_000.0;}
+    private static Double duration(JsonNode node,String name) {return node.has(name)&&node.path(name).isNumber()&&node.path(name).asDouble()>=0?node.path(name).asDouble()/1_000_000_000.0:null;}
+    private static Long count(JsonNode node,String name) {return node.has(name)&&node.path(name).isNumber()&&node.path(name).asLong()>=0?node.path(name).asLong():null;}
+    private int keepAliveMinutes(Integer requested) {
+        if(requested==null)return integerSetting("OLLAMA_KEEP_ALIVE_MINUTES",30,1,240);
+        if(requested<1||requested>240)throw failure(HttpStatus.BAD_REQUEST,"Keep model in memory must be between 1 and 240 minutes.");return requested;
+    }
+    private Settings nativeOllama() {
+        Settings s=settings("ollama");require(s);
+        String base=s.url().replaceAll("/+$","").replaceFirst("/v1$","");
+        return new Settings(s.id(),s.name(),base,s.key(),s.external());
+    }
+    public Preparation prepare(PrepareRequest request) {
+        if(request==null||request.model()==null||request.model().isBlank()||request.model().length()>200)throw failure(HttpStatus.BAD_REQUEST,"Choose an installed Ollama model.");
+        String model=request.model().strip();
+        int minutes=keepAliveMinutes(request.keepAliveMinutes());String key=model+":"+minutes;
+        var pending=new java.util.concurrent.CompletableFuture<Preparation>();
+        var existing=preparations.putIfAbsent(key,pending);
+        if(existing!=null) {try{return existing.join();}catch(java.util.concurrent.CompletionException e){if(e.getCause() instanceof RuntimeException r)throw r;throw e;}}
+        var lock=modelLock(model).readLock();lock.lock();
+        try {
+            long start=System.nanoTime();
+            if(!models("ollama").contains(model))throw failure(HttpStatus.BAD_REQUEST,"Choose an exact installed model ID. Load available models first.");
+            JsonNode response=exchange(nativeOllama(),"/api/generate",json.writeValueAsString(Map.of("model",model,"stream",false,"keep_alive",minutes*60)),Duration.ofSeconds(integerSetting("OLLAMA_TIMEOUT_SECONDS",600,1,1800)));
+            if(!response.path("done").asBoolean())throw failure(HttpStatus.BAD_GATEWAY,"Ollama did not confirm model preparation.");
+            var result=new Preparation(model,minutes,seconds(System.nanoTime()-start),duration(response,"load_duration"));pending.complete(result);return result;
+        }catch(RuntimeException e){pending.completeExceptionally(e);throw e;}finally{preparations.remove(key,pending);lock.unlock();}
+    }
     private final Environment env;
     private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final JsonMapper json=JsonMapper.builder().build();
@@ -46,8 +99,15 @@ public class LlmGateway {
         return names.stream().distinct().sorted().toList();
     }
     public Result generate(String provider,String model,String system,String context,List<Map<String,String>> images) {
+        return generate(provider,model,system,context,images,null);
+    }
+    public Result generate(String provider,String model,String system,String context,List<Map<String,String>> images,Integer retention) {
         Settings s=settings(provider); require(s);
         if(model==null || model.isBlank() || model.length()>200) throw failure(HttpStatus.BAD_REQUEST,"Choose a model.");
+        if(provider.equals("ollama")) {
+            var lock=modelLock(model.strip()).readLock();lock.lock();
+            try{return generateOllama(model,system,context,images,keepAliveMinutes(retention));}finally{lock.unlock();}
+        }
         List<Object> content=new ArrayList<>(); content.add(Map.of("type","text","text",context));
         for(var image:images) {
             if(provider.equals("anthropic")) content.add(Map.of("type","image","source",Map.of("type","base64","media_type",image.get("type"),"data",image.get("data"))));
@@ -59,14 +119,11 @@ public class LlmGateway {
         } else {
             body.put("messages",List.of(Map.of("role","system","content",system),Map.of("role","user","content",content)));
             body.put("response_format",Map.of("type","json_object"));
-            body.put(provider.equals("openai")?"max_completion_tokens":"max_tokens",provider.equals("ollama")?integerSetting("OLLAMA_MAX_OUTPUT_TOKENS",8192,512,16000):16000);
-            if(provider.equals("ollama")) {
-                String effort=env.getProperty("OLLAMA_REASONING_EFFORT","low").strip();
-                if(!effort.isEmpty()) body.put("reasoning_effort",effort);
-            }
+            body.put("max_completion_tokens",16000);
         }
         String payload=json.writeValueAsString(body);
-        JsonNode response=exchange(s,provider.equals("anthropic")?"/messages":"/chat/completions",payload,Duration.ofSeconds(provider.equals("ollama")?integerSetting("OLLAMA_TIMEOUT_SECONDS",600,1,1800):180));
+        long started=System.nanoTime();
+        JsonNode response=exchange(s,provider.equals("anthropic")?"/messages":"/chat/completions",payload,Duration.ofSeconds(180));
         String result;
         if(provider.equals("anthropic")) {
             if(!response.path("stop_reason").asText().equals("end_turn")) throw failure(HttpStatus.BAD_GATEWAY,"The model did not complete its proposal. Try a different model or reduce the input.");
@@ -77,7 +134,34 @@ public class LlmGateway {
             result=choice.path("message").path("content").asText();
         }
         if(result.isBlank()) throw failure(HttpStatus.BAD_GATEWAY,"The provider returned no proposal.");
-        return new Result(result,payload);
+        return new Result(result,payload,new Metrics(seconds(System.nanoTime()-started),null,null,null,count(response.path("usage"),provider.equals("anthropic")?"input_tokens":"prompt_tokens"),count(response.path("usage"),provider.equals("anthropic")?"output_tokens":"completion_tokens"),null,null));
+    }
+    private Result generateOllama(String model,String system,String context,List<Map<String,String>> images,int minutes) {
+        Map<String,Object> user=new LinkedHashMap<>();user.put("role","user");user.put("content",context);
+        if(!images.isEmpty())user.put("images",images.stream().map(i->i.get("data")).toList());
+        Map<String,Object> body=new LinkedHashMap<>();body.put("model",model);body.put("messages",List.of(Map.of("role","system","content",system),user));
+        body.put("stream",false);body.put("format","json");body.put("keep_alive",minutes*60);
+        body.put("options",Map.of("num_predict",integerSetting("OLLAMA_MAX_OUTPUT_TOKENS",8192,512,16000)));
+        String effort=env.getProperty("OLLAMA_REASONING_EFFORT","low").strip();
+        if(!effort.isEmpty()) {
+            JsonNode info=exchange(nativeOllama(),"/api/show",json.writeValueAsString(Map.of("model",model)),Duration.ofSeconds(15));
+            boolean thinking=false;for(JsonNode c:info.path("capabilities"))if(c.asText().equals("thinking"))thinking=true;
+            if(thinking) {
+                if(effort.equals("none")||effort.equals("false"))body.put("think",false);
+                else if(effort.equals("true"))body.put("think",true);
+                else if(info.path("thinking").path("values").isArray()) {
+                    boolean supported=false;for(JsonNode value:info.path("thinking").path("values"))if(value.isString()&&value.asText().equals(effort))supported=true;
+                    if(!supported)throw failure(HttpStatus.BAD_REQUEST,"This model does not support the configured OLLAMA_REASONING_EFFORT. Choose an advertised level or leave the setting empty for its default.");
+                    body.put("think",effort);
+                }else body.put("think",true);
+            }
+        }
+        String payload=json.writeValueAsString(body);long started=System.nanoTime();
+        JsonNode response=exchange(nativeOllama(),"/api/chat",payload,Duration.ofSeconds(integerSetting("OLLAMA_TIMEOUT_SECONDS",600,1,1800)));
+        if(!response.path("done").asBoolean()||!response.path("done_reason").asText().equals("stop"))throw failure(HttpStatus.BAD_GATEWAY,"The model did not complete its proposal. Try a different model or reduce the input.");
+        String text=response.path("message").path("content").asText();if(text.isBlank())throw failure(HttpStatus.BAD_GATEWAY,"The provider returned no proposal.");
+        Double generation=duration(response,"eval_duration");Long output=count(response,"eval_count");
+        return new Result(text,payload,new Metrics(seconds(System.nanoTime()-started),duration(response,"load_duration"),duration(response,"prompt_eval_duration"),generation,count(response,"prompt_eval_count"),output,generation!=null&&generation>0&&output!=null?output/generation:null,null));
     }
     private int integerSetting(String name,int fallback,int min,int max) {
         try {int value=Integer.parseInt(env.getProperty(name,Integer.toString(fallback)));if(value>=min&&value<=max)return value;}catch(NumberFormatException ignored) {}

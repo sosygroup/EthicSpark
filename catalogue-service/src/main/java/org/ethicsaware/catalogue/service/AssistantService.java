@@ -127,6 +127,7 @@ public class AssistantService {
         });
         if(responseId==null) return thread(id);
         try {
+            long preparationStarted=System.nanoTime();
             Thread current=thread(id);Project p=project(current.projectId());
             Set<UUID> materialIds=new LinkedHashSet<>();current.messages().forEach(m->materialIds.addAll(m.attachmentIds()));
             List<Object> material=new ArrayList<>();List<Map<String,String>> images=new ArrayList<>();long imageBytes=0;
@@ -144,11 +145,12 @@ public class AssistantService {
             modelInput.put("project",p);modelInput.put("conversation",history);modelInput.put("earlierMessagesOmitted",omitted);modelInput.put("toolReceipts",current.receipts());modelInput.put("workspace",workspace);modelInput.put("attachments",material);
             String context=json.writeValueAsString(modelInput);
             if(context.length()>500000) throw fail(HttpStatus.BAD_REQUEST,"The shared context is too large. Start a focused conversation or attach shorter documents.");
-            var result=gateway.generate(request.provider(),request.model(),SYSTEM,context,images);
+            double preparationSeconds=(System.nanoTime()-preparationStarted)/1_000_000_000.0;
+            var result=gateway.generate(request.provider(),request.model(),SYSTEM,context,images,request.keepAliveMinutes());
             Output output;
             try { output=validateOutput(json.readValue(result.text(),Output.class),source,workspace); }
             catch(Exception e) { throw fail(HttpStatus.BAD_GATEWAY,"The model returned an invalid response or operation. Nothing was executed. Retry or choose another model."); }
-            finish(id,responseId,new Message(responseId,"assistant",output.message(),"complete",request.provider(),request.model(),Instant.now(),List.of(),List.of(),output,hash(result.request())));
+            finish(id,responseId,new Message(responseId,"assistant",output.message(),"complete",request.provider(),request.model(),Instant.now(),List.of(),List.of(),output,hash(result.request()),result.metrics().withPreparation(preparationSeconds)));
         } catch(Exception e) {
             String detail=e instanceof ResponseStatusException r?r.getReason():"The model request failed. Your message and files are saved; retry when ready.";
             finish(id,responseId,new Message(responseId,"assistant",detail,"error",request.provider(),request.model(),Instant.now(),List.of(),List.of(),null,""));

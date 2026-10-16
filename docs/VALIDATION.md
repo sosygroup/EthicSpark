@@ -121,3 +121,40 @@ Browser checks exercised the standalone `/?catalogue=1` route and the workspace 
 - At a 390-pixel viewport, document scroll width equals client width. Desktop layout and browser console were checked with no application errors recorded.
 
 Native source links are restricted to absolute HTTP/HTTPS URLs without embedded credentials. Automated validation rejects file, JavaScript, data and relative targets, whitespace and oversized values. Opening a link through the installed Electron shell was not exercised in the browser check; an already-running desktop process needs reopening to load the new preload bridge.
+
+## Ollama preparation and response timing — 16 October 2026
+
+The final production frontend passed TypeScript checking and bundling. All **35 Java/PostgreSQL tests** passed: 13 importer tests, four gateway unit tests and 18 integration tests. Local HTTP stubs cover native Ollama JSON/image input, output and thinking controls, model retention, preparation without prompt content, rejection of unknown model IDs and invalid retention settings, duration/unit conversion, missing metrics and timeout reporting. The assistant integration test verifies persisted context/request timing and that unreported cloud loading time remains null. Existing provider, workflow, cancellation and approval tests remain passing.
+
+A real native API smoke check with installed `qwen3.8:27b`, low thinking and a synthetic JSON-only prompt returned `done_reason=stop`: 51 input tokens, 45 generated tokens, 6.029 seconds reported loading, 0.680 seconds prompt processing, 1.870 seconds generation and 8.584 seconds total reported duration. This short prompt does not include the full catalogue and cannot be compared with the earlier 233.6-second support-portal check.
+
+Browser testing confirmed that selecting the installed model prepares it without creating a conversation or sending project content. The preparation completed in 6.1 seconds, and the live Ollama process exposed the requested 30-minute expiry. The timed native API measurements are supplied by Ollama; the backend separately records model-request wall time and context preparation. No cold/warm comparative benchmark, sustained memory-pressure test or quality evaluation has been performed.
+
+Two synthetic assistant turns then completed with the full catalogue and persisted metrics. Both were reopened successfully in the browser, with no recorded browser errors. Preload opt-out and restoration were checked; the original browser provider/project preferences and project processing permission were restored after verification. No file edits or commands were proposed or executed.
+
+| Measurement | First assistant turn | Follow-up turn |
+| --- | ---: | ---: |
+| Backend context preparation | 0.047 s | 0.020 s |
+| Model request wall time | 202.218 s | 42.269 s |
+| Reported model loading | 0.0017 s | 0.0020 s |
+| Reported prompt processing | 184.044 s | 39.207 s |
+| Reported generation | 18.145 s | 3.036 s |
+| Input tokens | 19,830 | 20,361 |
+| Generated tokens | 403 | 70 |
+| Generation rate | 22.21 tokens/s | 23.06 tokens/s |
+
+The prompts and output lengths differ. These observations identify context processing as the dominant cost in this example; they do not isolate a preloading speedup or establish cache effectiveness across runs. The model was prepared before both turns. A later preparation following a browser reload completed below the UI’s 0.1-second display precision, and both existing timing panels remained available from the saved conversation.
+
+## Per-model retention and manual unloading — 16 October 2026
+
+All **37 Java/PostgreSQL tests** passed (13 importer, six gateway unit and 18 integration tests). Added transport tests verify per-request duration overrides on preparation and chat, reject durations outside 1–240, and confirm that unloading sends an empty request with `keep_alive=0`. A concurrent request test confirms that unloading returns HTTP 409 and sends no unload request while a generation holds the model’s activity lock. Existing requests that omit the new optional duration remain supported.
+
+Browser checks confirmed the 5/30/60-minute presets, Custom and range validation: zero disables preparation, while 15 is accepted. Setting qwen to 60 minutes, switching to gemma and back retained separate 60/30-minute preferences without loading gemma. Real preparation of `qwen3.8:27b` with Custom 15 resulted in approximately 15 minutes remaining in Ollama’s process record. **Unload model now** removed qwen from `/api/ps` while preserving it in `/api/tags`. Re-enabling automatic preload after manual unload did not immediately reload it. No model files or conversations were deleted, and no generation was needed for these checks. Other clients using the same Ollama instance are outside the tool’s activity tracking.
+
+Reloading the updated application restored Custom 15 from saved preferences and explicitly resumed enabled automatic preparation, as documented. The final frontend build passed TypeScript checks and Java unit tests after correcting an initial empty-selection status message. Browser console checks recorded no application errors. The verification ended with qwen’s 30-minute default restored in both preferences and Ollama; the original provider/model selections and preload setting were restored.
+
+## Model preparation gauge — 16 October 2026
+
+The production build passed TypeScript checking, frontend bundling and 19 Java unit tests. Backend behaviour is unchanged by this increment; the earlier 37-test integration result remains recorded above. Browser checks used a real cold load of `qwen3.8:27b`: an animated circular progress indicator and elapsed-time clock appeared, and successful completion replaced them with the actual result after 5.3 seconds. A second preparation remained visible across closing/reopening Model settings; the progress indicator had no `aria-valuenow`, matching its indeterminate semantics. Completion removed the indicator. An uninstalled synthetic model ID produced the existing explicit validation error and no lingering gauge. No model was downloaded and no project content or new message was sent. Original provider/model and preload preferences were restored afterward.
+
+The native generate and running-model APIs expose no live loading percentage. The gauge communicates preparation activity and elapsed time, not measured fractional completion. Reduced-motion CSS disables the circular animation; the component clears its clock interval when removed.

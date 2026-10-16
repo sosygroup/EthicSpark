@@ -32,13 +32,16 @@ class AssistedWorkflowIT {
     static HttpServer start() {
         try {
             HttpServer server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
-            server.createContext("/v1",exchange->{
+            server.createContext("/",exchange->{
                 String result;
                 if(exchange.getRequestURI().getPath().endsWith("/models")) result="{\"data\":[{\"id\":\"gpt-test-model\"}]}";
+                else if(exchange.getRequestURI().getPath().endsWith("/api/show")) result="{\"capabilities\":[\"completion\"]}";
                 else {
                     CALLS.incrementAndGet();INPUT.set(new String(exchange.getRequestBody().readAllBytes(),StandardCharsets.UTF_8));
                     String output=JSON.writeValueAsString(OUTPUT.get());
-                    result=exchange.getRequestURI().getPath().endsWith("/messages")?
+                    result=exchange.getRequestURI().getPath().endsWith("/api/chat")?
+                            JSON.writeValueAsString(Map.of("done",true,"done_reason","stop","message",Map.of("content",output))):
+                            exchange.getRequestURI().getPath().endsWith("/messages")?
                             JSON.writeValueAsString(Map.of("stop_reason","end_turn","content",List.of(Map.of("type","text","text",output)))):
                             JSON.writeValueAsString(Map.of("choices",List.of(Map.of("finish_reason","stop","message",Map.of("content",output)))));
                 }
@@ -123,7 +126,7 @@ class AssistedWorkflowIT {
             assertThat(workflow.get(p.id())).isEqualTo(p);
             assertThat(run.output().clusters()).hasSize(2);assertThat(run.output().recommendations()).hasSize(12);
             assertThat(INPUT.get()).contains("Requirements","Company ethics documents","untrusted evidence");
-            assertThat(INPUT.get()).contains(provider.equals("anthropic")?"\"media_type\":\"image/png\"":"data:image/png;base64,");
+            assertThat(INPUT.get()).contains(provider.equals("anthropic")?"\"media_type\":\"image/png\"":provider.equals("ollama")?"\"images\":[":"data:image/png;base64,");
             Project applied=reasoning.apply(p.id(),new Apply(p.revision(),"Reviewer",run.id(),run.output().clusters()));
             assertThat(applied.selectedClusters()).containsExactly("C-01","C-02");
             assertThat(applied.recommendations()).hasSize(12).allMatch(r->r.reviewStatus().equals("proposed"));

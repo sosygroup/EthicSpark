@@ -1101,3 +1101,87 @@
   font-size: 12px;
   color: #7a896b;
 }
+
+.response-timing {
+  margin: 14px 0;
+  font-size: 12px;
+  color: #607367;
+}
+.response-timing summary {
+  cursor: pointer;
+}
+.response-timing dl {
+  max-width: 460px;
+}
+.response-timing dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 4px 0;
+}
+.response-timing dd {
+  margin: 0;
+  text-align: right;
+}
+
+.model-loading-gauge {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 12px 0;
+  padding: 18px;
+  background: #f1f6fc;
+  border: 1px solid #dce6f3;
+  border-radius: 12px;
+}
+.model-loading-dial {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
+}
+.model-loading-dial > svg {
+  position: absolute;
+  inset: 0;
+  color: #dce6f3;
+}
+.model-loading-clock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #294e43;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.model-loading-description {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.model-loading-description strong {
+  font-size: 14px;
+}
+.model-loading-description span {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.model-loading-description small {
+  color: #5f6368;
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 480px) {
+  .model-loading-gauge {
+    padding: 12px;
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .model-loading-gauge .MuiCircularProgress-root,
+  .model-loading-gauge .MuiCircularProgress-circle {
+    animation: none;
+  }
+}

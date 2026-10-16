@@ -15,11 +15,19 @@ public final class Assistant {
     public record FileContext(String path,String sha256,String text,String notice) {}
     public record Workspace(String name,List<String> tree,List<FileContext> files) {}
     public record Message(UUID id,String role,String text,String status,String provider,String model,Instant at,
-                          List<UUID> attachmentIds,List<FileContext> contextManifest,Output output,String inputSha256) {}
+                          List<UUID> attachmentIds,List<FileContext> contextManifest,Output output,String inputSha256,LlmGateway.Metrics metrics) {
+        public Message(UUID id,String role,String text,String status,String provider,String model,Instant at,List<UUID> attachmentIds,List<FileContext> contextManifest,Output output,String inputSha256) {
+            this(id,role,text,status,provider,model,at,attachmentIds,contextManifest,output,inputSha256,null);
+        }
+    }
     public record Receipt(UUID id,UUID messageId,String operationId,String status,String summary,String output,Integer exitCode,Instant at) {}
     public record CreateProject(String name) {}
     public record CreateThread(UUID projectId) {}
     public record Send(int revision,UUID requestKey,String text,String provider,String model,boolean consent,
-                       List<UUID> attachmentIds,Workspace workspace,boolean continuation) {}
+                       List<UUID> attachmentIds,Workspace workspace,boolean continuation,Integer keepAliveMinutes) {
+        public Send(int revision,UUID requestKey,String text,String provider,String model,boolean consent,List<UUID> attachmentIds,Workspace workspace,boolean continuation) {
+            this(revision,requestKey,text,provider,model,consent,attachmentIds,workspace,continuation,null);
+        }
+    }
     public record Execution(String operationId,String status,String summary,String output,Integer exitCode) {}
 }

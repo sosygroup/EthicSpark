@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useCallback,
   useRef,
   useState,
   isValidElement,
@@ -22,6 +23,7 @@ import {
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type {
+  ModelPreparation,
   Artifact,
   Attachment,
   Citation,
@@ -38,6 +40,7 @@ import type {
 } from "./assistant-types";
 import "./assistant.css";
 import Diagram from "./Diagram";
+import ModelLoadingGauge from "./ModelLoadingGauge";
 import { Info, HelpButton, HelpMuiButton } from "./Help";
 
 const CatalogueExplorer = lazy(() => import("./CatalogueExplorer"));
@@ -206,6 +209,162 @@ export default function App() {
   } | null>(null);
   const [renameName, setRenameName] = useState("");
   const [managing, setManaging] = useState(false);
+  const [preloadEnabled, setPreloadEnabled] = useState(
+    () => localStorage.getItem("ethicspark-preload") !== "false",
+  );
+  const [retentionPreferences, setRetentionPreferences] = useState<
+    Record<string, number>
+  >(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("ethicspark-retention") || "{}",
+      );
+      return Object.fromEntries(
+        Object.entries(saved).filter(
+          ([key, value]) =>
+            key.length <= 200 &&
+            typeof value === "number" &&
+            Number.isInteger(value) &&
+            value >= 1 &&
+            value <= 240,
+        ),
+      ) as Record<string, number>;
+    } catch {
+      return {};
+    }
+  });
+  const [customRetention, setCustomRetention] = useState<
+    Record<string, string>
+  >({});
+  const retentionKey = model.trim();
+  const retentionMinutes = retentionPreferences[retentionKey] ?? 30;
+  const retentionDraft = customRetention[retentionKey];
+  const retentionValid =
+    retentionDraft === undefined ||
+    (/^\d+$/.test(retentionDraft) &&
+      Number(retentionDraft) >= 1 &&
+      Number(retentionDraft) <= 240);
+  const retentionChoice =
+    retentionDraft !== undefined || ![5, 30, 60].includes(retentionMinutes)
+      ? "custom"
+      : String(retentionMinutes);
+  const [unloading, setUnloading] = useState(false);
+  const [unloadedModel, setUnloadedModel] = useState("");
+  useEffect(() => {
+    localStorage.setItem(
+      "ethicspark-retention",
+      JSON.stringify(retentionPreferences),
+    );
+  }, [retentionPreferences]);
+  const [warmup, setWarmup] = useState<{
+    model: string;
+    status: "preparing" | "ready" | "error";
+    startedAt: number;
+    data?: ModelPreparation;
+    error?: string;
+  } | null>(null);
+  const warmupRef = useRef<{
+    model: string;
+    minutes: number;
+    promise: Promise<ModelPreparation>;
+    until: number;
+  } | null>(null);
+  const prepareModel = useCallback(
+    (force = false) => {
+      const selected = model.trim();
+      const old = warmupRef.current;
+      if (!retentionValid)
+        return Promise.reject(
+          Error("Choose a duration from 1 to 240 minutes."),
+        );
+      if (
+        old?.model === selected &&
+        old.minutes === retentionMinutes &&
+        old.until > Date.now() &&
+        !force
+      )
+        return old.promise;
+      setUnloadedModel("");
+      const startedAt = performance.now();
+      setWarmup({ model: selected, status: "preparing", startedAt });
+      const entry = {
+        model: selected,
+        minutes: retentionMinutes,
+        promise: null as unknown as Promise<ModelPreparation>,
+        until: Infinity,
+      };
+      const promise = api<ModelPreparation>(
+        "/api/reasoning/providers/ollama/prepare",
+        { model: selected, keepAliveMinutes: retentionMinutes },
+      )
+        .then((data) => {
+          entry.until = Date.now() + data.keepAliveMinutes * 60000;
+          if (warmupRef.current === entry)
+            setWarmup({ model: selected, status: "ready", data, startedAt });
+          return data;
+        })
+        .catch((e) => {
+          entry.until = 0;
+          if (warmupRef.current === entry)
+            setWarmup({
+              model: selected,
+              status: "error",
+              error: e.message,
+              startedAt,
+            });
+          throw e;
+        });
+      entry.promise = promise;
+      warmupRef.current = entry;
+      return promise;
+    },
+    [model, retentionMinutes, retentionValid],
+  );
+  useEffect(() => {
+    localStorage.setItem("ethicspark-preload", String(preloadEnabled));
+    if (
+      provider !== "ollama" ||
+      !model.trim() ||
+      !preloadEnabled ||
+      !retentionValid ||
+      unloadedModel === model.trim() ||
+      unloading ||
+      loading ||
+      busy
+    )
+      return;
+    const timer = setTimeout(() => {
+      void prepareModel().catch(() => undefined);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [
+    provider,
+    model,
+    preloadEnabled,
+    loading,
+    busy,
+    prepareModel,
+    retentionValid,
+    unloadedModel,
+    unloading,
+  ]);
+  async function unloadModel() {
+    const selected = model.trim();
+    setUnloading(true);
+    try {
+      await api("/api/reasoning/providers/ollama/unload", { model: selected });
+      warmupRef.current = null;
+      setWarmup(null);
+      setUnloadedModel(selected);
+      setNotice(
+        "Model unloaded. It will load again when you prepare it or send a message.",
+      );
+    } catch (e) {
+      setNotice((e as Error).message);
+    } finally {
+      setUnloading(false);
+    }
+  }
   const [catalogueOpen, setCatalogueOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [trashed, setTrashed] = useState<Project[]>([]);
@@ -535,7 +694,11 @@ export default function App() {
     }
   }
   async function performSend(continuation = false, existing?: Thread) {
-    if (busy || uploading || executing) return;
+    if (busy || uploading || executing || unloading) return;
+    if (provider === "ollama" && !retentionValid) {
+      setSettings(true);
+      return;
+    }
     let id = projectId;
     try {
       if (!id) id = await ensureProject();
@@ -562,6 +725,13 @@ export default function App() {
     let current = existing || thread,
       include = [...paths];
     try {
+      if (provider === "ollama" && preloadEnabled) {
+        setActivity(
+          "Preparing Ollama model… No project content is sent during preparation.",
+        );
+        await prepareModel().catch(() => undefined);
+        if (abort.current?.signal.aborted) return;
+      }
       if (!current) {
         current = await api<Thread>("/api/assistant/threads", {
           projectId: id,
@@ -579,7 +749,7 @@ export default function App() {
           round
             ? "Reading requested files and continuing…"
             : provider === "ollama"
-              ? "Processing with Ollama locally. Loading the model and reading the catalogue may take several minutes…"
+              ? "Waiting for Ollama: processing context and generating a response. This may take several minutes…"
               : "Thinking through your request…",
         );
         const body = {
@@ -589,6 +759,7 @@ export default function App() {
           provider,
           model,
           consent: true,
+          keepAliveMinutes: provider === "ollama" ? retentionMinutes : null,
           attachmentIds: round ? [] : initialFiles,
           workspace: context,
           continuation: continuation || round > 0,
@@ -1083,7 +1254,7 @@ export default function App() {
                             <span className="thinking-dot" />
                             {activity ||
                               (m.provider === "ollama"
-                                ? "Processing with Ollama locally. The first response may take several minutes…"
+                                ? "Waiting for Ollama: loading if needed, processing context and generating a response…"
                                 : "Working on your request…")}
                           </div>
                         ) : m.status === "error" ? (
@@ -1208,6 +1379,62 @@ export default function App() {
                             <Icon name="download" />
                           </HelpButton>
                         ))}
+                        {m.status === "complete" && m.metrics && (
+                          <details className="response-timing">
+                            <summary>
+                              Response timing <Info topic="modelPerformance" />
+                            </summary>
+                            <dl>
+                              {[
+                                [
+                                  "Context preparation",
+                                  m.metrics.contextPreparationSeconds,
+                                  "s",
+                                ],
+                                [
+                                  "Model request (wall time)",
+                                  m.metrics.requestSeconds,
+                                  "s",
+                                ],
+                                ["Model loading", m.metrics.loadSeconds, "s"],
+                                [
+                                  "Prompt processing",
+                                  m.metrics.promptSeconds,
+                                  "s",
+                                ],
+                                [
+                                  "Response generation",
+                                  m.metrics.generationSeconds,
+                                  "s",
+                                ],
+                                [
+                                  "Input tokens",
+                                  m.metrics.inputTokens,
+                                  "tokens",
+                                ],
+                                [
+                                  "Generated tokens",
+                                  m.metrics.outputTokens,
+                                  "tokens",
+                                ],
+                                [
+                                  "Generation rate",
+                                  m.metrics.tokensPerSecond,
+                                  "tokens/s",
+                                ],
+                              ].map(([name, value, unit]) => (
+                                <div key={String(name)}>
+                                  <dt>{name}</dt>
+                                  <dd>
+                                    {typeof value === "number"
+                                      ? `${unit === "tokens" ? value.toLocaleString() : value.toFixed(2)} ${unit}`
+                                      : "Not reported"}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </details>
+                        )}
                         {m.status === "complete" && (
                           <div className="response-meta">
                             {m.model}
@@ -1730,6 +1957,7 @@ export default function App() {
             <TextField
               select
               label="Provider"
+              disabled={unloading}
               helperText={<Info topic="provider" />}
               value={providers.length ? provider : ""}
               onChange={(e) => {
@@ -1746,6 +1974,7 @@ export default function App() {
             </TextField>
             <TextField
               label="Model ID"
+              disabled={unloading}
               helperText={<Info topic="model" />}
               value={model}
               onChange={(e) => setModel(e.target.value)}
@@ -1772,10 +2001,141 @@ export default function App() {
             </Alert>
           )}
           {currentProvider?.id === "ollama" && (
-            <Alert severity="info">
-              Start Ollama and install a model first. Use a vision model for
-              image attachments.
-            </Alert>
+            <>
+              <Alert severity="info">
+                Start Ollama and install a model first. Use a vision model for
+                image attachments. Preparation sends only the model ID; project
+                content is sent when you submit a message.
+              </Alert>
+              <div className="settings-fields">
+                <TextField
+                  select
+                  label="Keep model in memory after use"
+                  value={retentionChoice}
+                  disabled={
+                    !retentionKey ||
+                    busy ||
+                    unloading ||
+                    warmup?.status === "preparing"
+                  }
+                  onChange={(e) => {
+                    const choice = e.target.value;
+                    if (choice === "custom")
+                      setCustomRetention((old) => ({
+                        ...old,
+                        [retentionKey]: String(retentionMinutes),
+                      }));
+                    else {
+                      setRetentionPreferences((old) => ({
+                        ...old,
+                        [retentionKey]: Number(choice),
+                      }));
+                      setCustomRetention((old) => {
+                        const next = { ...old };
+                        delete next[retentionKey];
+                        return next;
+                      });
+                    }
+                  }}
+                >
+                  <MenuItem value="5">5 minutes</MenuItem>
+                  <MenuItem value="30">30 minutes (default)</MenuItem>
+                  <MenuItem value="60">60 minutes</MenuItem>
+                  <MenuItem value="custom">Custom</MenuItem>
+                </TextField>
+                {retentionChoice === "custom" && (
+                  <TextField
+                    label="Custom duration (minutes)"
+                    type="number"
+                    value={retentionDraft ?? retentionMinutes}
+                    error={!retentionValid}
+                    helperText="Enter a whole number from 1 to 240."
+                    disabled={
+                      busy || unloading || warmup?.status === "preparing"
+                    }
+                    slotProps={{ htmlInput: { min: 1, max: 240, step: 1 } }}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCustomRetention((old) => ({
+                        ...old,
+                        [retentionKey]: value,
+                      }));
+                      if (
+                        /^\d+$/.test(value) &&
+                        Number(value) >= 1 &&
+                        Number(value) <= 240
+                      )
+                        setRetentionPreferences((old) => ({
+                          ...old,
+                          [retentionKey]: Number(value),
+                        }));
+                    }}
+                  />
+                )}
+              </div>
+              <p className="settings-note">
+                Remembered for this model in this browser or desktop app. The
+                timer restarts after each use. Keeping a model loaded occupies
+                memory; Ollama may unload it earlier if resources change.
+              </p>
+              <label className="model-consent">
+                <input
+                  type="checkbox"
+                  checked={preloadEnabled}
+                  onChange={(e) => setPreloadEnabled(e.target.checked)}
+                />
+                <span>
+                  Preload the selected Ollama model{" "}
+                  <Info topic="modelPerformance" />
+                </span>
+              </label>
+              <Button
+                disabled={
+                  !model.trim() ||
+                  !retentionValid ||
+                  unloading ||
+                  warmup?.status === "preparing" ||
+                  busy
+                }
+                onClick={() => void prepareModel(true).catch(() => undefined)}
+              >
+                Prepare model now
+              </Button>
+              <Button
+                disabled={
+                  !model.trim() ||
+                  unloading ||
+                  warmup?.status === "preparing" ||
+                  busy
+                }
+                onClick={() => void unloadModel()}
+              >
+                {unloading ? "Unloading model…" : "Unload model now"}
+              </Button>
+              {unloadedModel && unloadedModel === model.trim() && (
+                <Alert severity="info">
+                  Model unloaded. Automatic preparation is paused for this model
+                  until you prepare it or send a message. Reopening the app
+                  re-enables automatic preparation if selected.
+                </Alert>
+              )}
+              {warmup?.model === model.trim() &&
+                (warmup.status === "preparing" ? (
+                  <ModelLoadingGauge
+                    startedAt={warmup.startedAt}
+                    model={warmup.model}
+                  />
+                ) : (
+                  <Alert
+                    severity={warmup.status === "error" ? "warning" : "success"}
+                    role="status"
+                  >
+                    {warmup.status === "error"
+                      ? warmup.error
+                      : `Model preparation completed in ${warmup.data!.requestSeconds.toFixed(1)} s. Ollama will be asked to retain it for ${warmup.data!.keepAliveMinutes} minutes after each use. Other clients and memory pressure can affect availability.`}
+                  </Alert>
+                ))}
+            </>
           )}
           <label className="model-consent">
             <input
