@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, isValidElement } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, MouseEvent } from "react";
 import {
   Alert,
   Dialog,
@@ -7,6 +7,8 @@ import {
   DialogContent,
   DialogTitle,
   MenuItem,
+  Menu,
+  Button,
   Snackbar,
   TextField,
 } from "@mui/material";
@@ -49,6 +51,12 @@ async function api<T>(
 }
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, string> = {
+    copy: "M9 3h12v14H9ZM3 7h3v14h12v-1",
+    more: "M5 12h.01M12 12h.01M19 12h.01",
+    edit: "m4 16 11-11 4 4-11 11-5 1Zm9-9 4 4",
+    trash: "M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7",
+    open: "M3 7V5h6l2 2h10v6M3 7v12h8M14 15h7m-3-3 3 3-3 3",
+    restore: "M4 5v6h6M4 11a8 8 0 1 1 1 7",
     plus: "M12 5v14M5 12h14",
     folder: "M3 7V5h6l2 2h10v12H3Z",
     chat: "M4 4h16v12H9l-5 4Z",
@@ -178,6 +186,19 @@ export default function App() {
     } | null>(null),
     [executing, setExecuting] = useState(false),
     [liveOutput, setLiveOutput] = useState("");
+  const [projectMenu, setProjectMenu] = useState<{
+    anchor: HTMLElement;
+    project: Project;
+  } | null>(null);
+  const [menuFolder, setMenuFolder] = useState<Workspace | null>(null);
+  const [projectDialog, setProjectDialog] = useState<{
+    kind: "rename" | "delete";
+    project: Project;
+  } | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [managing, setManaging] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trashed, setTrashed] = useState<Project[]>([]);
   const abort = useRef<AbortController | null>(null),
     end = useRef<HTMLDivElement | null>(null),
     fileInput = useRef<HTMLInputElement | null>(null),
@@ -335,6 +356,94 @@ export default function App() {
       setError((e as Error).message);
     }
   }
+  async function openProjectMenu(
+    event: MouseEvent<HTMLButtonElement>,
+    p: Project,
+  ) {
+    setProjectMenu({ anchor: event.currentTarget, project: p });
+    setMenuFolder(null);
+    if (native) {
+      try {
+        const folder = await native.workspace(p.id);
+        setMenuFolder(folder);
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    }
+  }
+  async function showTrash() {
+    setError("");
+    try {
+      setTrashed(await api<Project[]>("/api/assistant/projects/trash"));
+      setTrashOpen(true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function restoreProject(p: Project) {
+    setManaging(true);
+    try {
+      await api<Project>("/api/assistant/projects/" + p.id + "/restore", {});
+      setTrashed(await api<Project[]>("/api/assistant/projects/trash"));
+      await refresh();
+      setNotice("Project restored. Link its local folder again if needed.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setManaging(false);
+    }
+  }
+  async function saveProjectChange() {
+    if (!projectDialog || managing) return;
+    setManaging(true);
+    setError("");
+    const { kind, project: p } = projectDialog;
+    try {
+      if (kind === "rename") {
+        await api<Project>("/api/assistant/projects/" + p.id + "/rename", {
+          name: renameName.trim(),
+        });
+        setNotice("Project renamed.");
+      } else {
+        await api("/api/assistant/projects/" + p.id + "/trash", {});
+        let unlinkFailed = false;
+        try {
+          await native?.unlinkFolder(p.id);
+        } catch {
+          unlinkFailed = true;
+        }
+        if (p.id === projectId) {
+          setProjectId("");
+          setThread(null);
+          setAttached([]);
+          setPrompt("");
+          setWorkspace(null);
+          setPaths([]);
+          setPreview(null);
+          setFileView(null);
+          setPanel(null);
+          localStorage.removeItem("ethicspark-thread");
+        }
+        localStorage.removeItem("ethicspark-files-" + p.id);
+        setConsents((v) =>
+          Object.fromEntries(
+            Object.entries(v).filter(([key]) => !key.startsWith(p.id + ":")),
+          ),
+        );
+        setNotice(
+          unlinkFailed
+            ? "Project moved to trash. Its desktop folder link could not be cleared; no files were deleted."
+            : "Project moved to trash. Your local files are unchanged.",
+        );
+      }
+      await refresh();
+      setProjectDialog(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setManaging(false);
+    }
+  }
   async function chooseProject(id: string) {
     if (busy || executing) return;
     setProjectId(id);
@@ -459,7 +568,9 @@ export default function App() {
         setActivity(
           round
             ? "Reading requested files and continuing…"
-            : "Thinking through your request…",
+            : provider === "ollama"
+              ? "Processing with Ollama locally. Loading the model and reading the catalogue may take several minutes…"
+              : "Thinking through your request…",
         );
         const body = {
           revision: current!.revision,
@@ -689,16 +800,29 @@ export default function App() {
         <div className="project-list">
           {projects.map((p) => (
             <div key={p.id}>
-              <HelpButton
-                help="project"
-                className={
-                  "project-row " + (p.id === projectId ? "selected" : "")
-                }
-                onClick={() => void chooseProject(p.id)}
-              >
-                <Icon name="folder" />
-                <span>{p.name}</span>
-              </HelpButton>
+              <div className="project-row-shell">
+                <HelpButton
+                  help="project"
+                  className={
+                    "project-row " + (p.id === projectId ? "selected" : "")
+                  }
+                  onClick={() => void chooseProject(p.id)}
+                >
+                  <Icon name="folder" />
+                  <span>{p.name}</span>
+                </HelpButton>
+                <button
+                  type="button"
+                  className="project-menu-button"
+                  aria-label={"Project menu: " + p.name}
+                  title="Project menu"
+                  aria-haspopup="menu"
+                  aria-expanded={projectMenu?.project.id === p.id}
+                  onClick={(e) => void openProjectMenu(e, p)}
+                >
+                  <Icon name="more" />
+                </button>
+              </div>
               {p.id === projectId && (
                 <div className="thread-list">
                   {threads
@@ -724,6 +848,9 @@ export default function App() {
           )}
         </div>
         <div className="side-bottom">
+          <button type="button" onClick={() => void showTrash()}>
+            <Icon name="trash" /> Trash
+          </button>
           <HelpButton help="settings" onClick={() => setSettings(true)}>
             <Icon name="gear" />
             Model settings
@@ -775,6 +902,54 @@ export default function App() {
             </HelpButton>
           </div>
         </header>
+        <div
+          className={
+            "environment-banner " + (native ? "desktop-mode" : "browser-mode")
+          }
+          role="note"
+        >
+          <Icon name={native ? "shield" : "files"} size={18} />
+          <div>
+            <strong>{native ? "Desktop mode" : "Browser mode"}</strong>
+            {native ? (
+              <span>
+                {" "}
+                Link a local folder to work with current files. File edits and
+                commands require your approval.
+              </span>
+            ) : (
+              <span>
+                {" "}
+                Chat, attachments and downloads work here. Live project folders,
+                file edits and commands require the desktop app. From the
+                EthicSpark project folder, run <code>
+                  ./scripts/desktop.sh
+                </code>{" "}
+                with Docker running.
+              </span>
+            )}
+          </div>
+          {!native && (
+            <button
+              type="button"
+              className="launch-copy"
+              title="Copy desktop launch command"
+              aria-label="Copy desktop launch command"
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText("./scripts/desktop.sh")
+                  .then(() => setNotice("Desktop launch command copied."))
+                  .catch(() =>
+                    setNotice("Copy this command: ./scripts/desktop.sh"),
+                  )
+              }
+            >
+              <Icon name="copy" size={16} />
+              <span>Copy command</span>
+            </button>
+          )}
+          <Info topic="start" />
+        </div>
         {error && (
           <div className="workspace-error">
             <Alert severity="error" onClose={() => setError("")}>
@@ -875,7 +1050,7 @@ export default function App() {
                         {m.status === "pending" ? (
                           <div className="thinking">
                             <span className="thinking-dot" />
-                            {activity || "Working on your request…"}
+                            {activity || (m.provider === "ollama" ? "Processing with Ollama locally. The first response may take several minutes…" : "Working on your request…")}
                           </div>
                         ) : m.status === "error" ? (
                           <div className="response-error">
@@ -1319,6 +1494,174 @@ export default function App() {
           )}
         </aside>
       )}
+      <Menu
+        anchorEl={projectMenu?.anchor}
+        open={!!projectMenu}
+        onClose={() => setProjectMenu(null)}
+      >
+        <MenuItem
+          disabled={busy || executing || uploading || managing}
+          onClick={() => {
+            if (projectMenu) {
+              setError("");
+              setRenameName(projectMenu.project.name);
+              setProjectDialog({
+                kind: "rename",
+                project: projectMenu.project,
+              });
+            }
+            setProjectMenu(null);
+          }}
+        >
+          <Icon name="edit" />{" "}
+          <span className="project-menu-label">Rename project</span>
+        </MenuItem>
+        <MenuItem
+          disabled={!native?.openFolder || !menuFolder}
+          onClick={() => {
+            const p = projectMenu?.project;
+            setProjectMenu(null);
+            if (p && native)
+              void native.openFolder(p.id).catch((e) => setError(e.message));
+          }}
+        >
+          <Icon name="open" />
+          <span className="project-menu-label">
+            Open folder
+            {!native ? (
+              <small>Desktop app only</small>
+            ) : !menuFolder ? (
+              <small>No linked folder</small>
+            ) : null}
+          </span>
+        </MenuItem>
+        <MenuItem
+          disabled={busy || executing || uploading || managing}
+          onClick={() => {
+            setError("");
+            if (projectMenu)
+              setProjectDialog({
+                kind: "delete",
+                project: projectMenu.project,
+              });
+            setProjectMenu(null);
+          }}
+          sx={{ color: "error.main" }}
+        >
+          <Icon name="trash" />
+          <span className="project-menu-label">Delete project</span>
+        </MenuItem>
+      </Menu>
+      {projectDialog && (
+        <Dialog
+          open={!!projectDialog}
+          onClose={() => !managing && setProjectDialog(null)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle>
+            {projectDialog?.kind === "rename"
+              ? "Rename project"
+              : "Delete project?"}
+          </DialogTitle>
+          <DialogContent>
+            {error && <Alert severity="error">{error}</Alert>}
+            {projectDialog?.kind === "rename" ? (
+              <TextField
+                autoFocus
+                margin="dense"
+                fullWidth
+                label="Project name"
+                value={renameName}
+                onChange={(e) => setRenameName(e.target.value)}
+                slotProps={{ htmlInput: { maxLength: 160 } }}
+                disabled={managing}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && renameName.trim()) {
+                    e.preventDefault();
+                    void saveProjectChange();
+                  }
+                }}
+              />
+            ) : (
+              <>
+                <p>
+                  <strong>{projectDialog?.project.name}</strong> and its
+                  conversations will move to Trash. You can restore them later.
+                </p>
+                <p>
+                  Saved attachments, artifacts and operation history are
+                  retained. This does not permanently erase project data.
+                </p>
+                <p>
+                  The local folder will be unlinked. Its files will not be
+                  changed or deleted.
+                </p>
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button disabled={managing} onClick={() => setProjectDialog(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color={projectDialog?.kind === "delete" ? "error" : "primary"}
+              disabled={
+                managing ||
+                busy ||
+                executing ||
+                uploading ||
+                (projectDialog?.kind === "rename" && !renameName.trim())
+              }
+              onClick={() => void saveProjectChange()}
+            >
+              {managing
+                ? "Saving…"
+                : projectDialog?.kind === "rename"
+                  ? "Save name"
+                  : "Move to trash"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+      <Dialog
+        open={trashOpen}
+        onClose={() => !managing && setTrashOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Trash</DialogTitle>
+        <DialogContent>
+          {error && <Alert severity="error">{error}</Alert>}
+          <p>
+            Deleted projects are kept here with their conversations and saved
+            material. Restoring a project does not reconnect its local folder
+            automatically.
+          </p>
+          {trashed.length ? (
+            trashed.map((p) => (
+              <div className="trash-project-row" key={p.id}>
+                <span>{p.name}</span>
+                <Button
+                  startIcon={<Icon name="restore" />}
+                  disabled={managing}
+                  onClick={() => void restoreProject(p)}
+                >
+                  Restore
+                </Button>
+              </div>
+            ))
+          ) : (
+            <p>Trash is empty.</p>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTrashOpen(false)} disabled={managing}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={settings}
         onClose={() => setSettings(false)}

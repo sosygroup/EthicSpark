@@ -13,6 +13,10 @@ public class AssistantController {
     public AssistantController(AssistantService service) {this.service=service;}
     @GetMapping("/projects") public List<Project> projects() {return service.projects();}
     @PostMapping("/projects") public Project create(@RequestBody CreateProject request) {return service.createProject(request);}
+    @GetMapping("/projects/trash") public List<Project> trash() {return service.trashedProjects();}
+    @PostMapping("/projects/{id}/rename") public Project rename(@PathVariable UUID id,@RequestBody CreateProject request) {return service.renameProject(id,request);}
+    @PostMapping("/projects/{id}/trash") public Map<String,Boolean> trash(@PathVariable UUID id) {service.trashProject(id);return Map.of("deleted",true);}
+    @PostMapping("/projects/{id}/restore") public Project restore(@PathVariable UUID id) {return service.restoreProject(id);}
     @GetMapping("/threads") public List<ThreadSummary> threads() {return service.threads();}
     @PostMapping("/threads") public Thread createThread(@RequestBody CreateThread request) {return service.createThread(request);}
     @GetMapping("/threads/{id}") public Thread thread(@PathVariable UUID id) {return service.thread(id);}

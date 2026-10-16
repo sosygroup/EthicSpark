@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld(
   "ethicsparkDesktop",
   Object.freeze({
     linkFolder: (project) => ipcRenderer.invoke("workspace:link", project),
+    openFolder: (project) => ipcRenderer.invoke("workspace:open", project),
     workspace: (project) => ipcRenderer.invoke("workspace:get", project),
     unlinkFolder: (project) => ipcRenderer.invoke("workspace:unlink", project),
     readFile: (project, path) =>

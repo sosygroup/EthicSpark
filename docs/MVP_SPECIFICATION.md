@@ -4,6 +4,8 @@
 
 Version 0.3 — 15 October 2026
 
+**Implemented update, 16 October 2026:** project renaming, native Open folder, reversible deletion/restore, browser-mode startup guidance and simplified contextual help. Ollama now has compact catalogue context, configurable generation limits and retry after a first-response failure. See [changelog](../CHANGELOG.md) and [validation](VALIDATION.md); the real local smoke check is not an expert usability evaluation.
+
 Implementation update: profile attachments, Company Ethics, Additional Material, sharing None, all-cluster adaptation and three LLM providers are now implemented. See [assisted workflow](ASSISTED_WORKFLOW.md) for the actual shipped limits and review flow. Requirements below that concern authenticated shared deployment, implementation-evidence validation, generation idempotency, partial recovery and automatic retries remain release targets, not claims about this local increment.
 
 This specification defines the first implementation of the developer-facing ethics catalogue tool. The product helps software teams turn the catalogue into a reviewed, application-specific action plan and provides an executable research artefact for evaluation with the catalogue experts.

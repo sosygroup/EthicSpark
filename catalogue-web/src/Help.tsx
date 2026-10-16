@@ -13,6 +13,31 @@ import { help } from "./help-content";
 import type { HelpEntry } from "./help-content";
 import "./help.css";
 
+const obviousActions = new Set([
+  "close",
+  "cancel",
+  "copy",
+  "sidebar",
+  "conversation",
+  "project",
+  "thread",
+  "starter",
+  "download",
+  "removeAttachment",
+  "removeContext",
+  "reload",
+  "details",
+  "export",
+  "exportPlan",
+  "create",
+  "projects",
+  "send",
+  "decline",
+  "stop",
+  "stopCommand",
+  "loadModels",
+  "file",
+]);
 const HelpContext = createContext<(entry: HelpEntry) => void>(() => {});
 export function HelpProvider({ children }: { children: ReactNode }) {
   const [entry, setEntry] = useState<HelpEntry | null>(null);
@@ -91,7 +116,7 @@ export function HelpButton({
       <button type="button" className={className} {...props}>
         {children}
       </button>
-      <Info topic={topic} />
+      {!obviousActions.has(topic) && <Info topic={topic} />}
     </span>
   );
 }
@@ -110,7 +135,7 @@ export function HelpMuiButton({
       }
     >
       <Button {...props} />
-      <Info topic={topic} />
+      {!obviousActions.has(topic) && <Info topic={topic} />}
     </span>
   );
 }

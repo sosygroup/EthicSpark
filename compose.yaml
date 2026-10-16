@@ -33,6 +33,9 @@ services:
       OLLAMA_MODELS: ${OLLAMA_MODELS:-}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
       OLLAMA_EXTERNAL: ${OLLAMA_EXTERNAL:-false}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-600}
+      OLLAMA_MAX_OUTPUT_TOKENS: ${OLLAMA_MAX_OUTPUT_TOKENS:-8192}
+      OLLAMA_REASONING_EFFORT: ${OLLAMA_REASONING_EFFORT-low}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

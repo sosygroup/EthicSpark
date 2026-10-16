@@ -1,5 +1,12 @@
 "use strict";
-const { app, BrowserWindow, ipcMain, dialog, session } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  session,
+  shell,
+} = require("electron");
 const path = require("node:path");
 const { WorkspaceAgent } = require("./workspace-agent.cjs");
 const target = new URL(process.env.ETHICSPARK_URL || "http://localhost:8082/");
@@ -98,6 +105,9 @@ app.whenReady().then(async () => {
     return agent.link(project, choice.filePaths[0]);
   });
   handle("workspace:get", (project) => agent.workspace(project));
+  handle("workspace:open", (project) =>
+    agent.openFolder(project, (root) => shell.openPath(root)),
+  );
   handle("workspace:unlink", (project) => agent.unlink(project));
   handle("workspace:read", (project, relative) =>
     agent.read(project, relative),

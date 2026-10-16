@@ -210,3 +210,32 @@ test("closing the app terminates an approved child even if it ignores a graceful
   const result = await running;
   assert.equal(result.status, "cancelled");
 });
+
+test("open folder uses only the linked directory and unlink invalidates pending approvals without deleting files", async (t) => {
+  const { project, agent, folder } = await fixture(t, async () => true);
+  let opened;
+  await agent.openFolder(project, async (folder) => {
+    opened = folder;
+    return "";
+  });
+  assert.equal(opened, await fs.realpath(folder));
+  await assert.rejects(
+    agent.openFolder("00000000-0000-0000-0000-000000000000", async () =>
+      assert.fail("must not open"),
+    ),
+  );
+  await assert.rejects(
+    agent.openFolder(project, async () => "Finder could not open the folder"),
+    /Finder/,
+  );
+  const ticket = await agent.prepare(project, {
+    kind: "write",
+    path: "new.txt",
+    content: "example",
+    baseSha256: "",
+    reason: "Create file",
+  });
+  await agent.unlink(project);
+  await assert.rejects(agent.approve(ticket.ticket), /expired/);
+  assert.equal((await fs.stat(folder)).isDirectory(), true);
+});

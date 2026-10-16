@@ -25,14 +25,14 @@ public class AttachmentService {
     private final JsonMapper json=JsonMapper.builder().build();
     public AttachmentService(JdbcTemplate db) { this.db=db; }
     public List<Attachment> list(UUID project) {
-        return db.query("SELECT document::text FROM profile_attachment WHERE project_id=? ORDER BY created_at,id",(rs,n)->json.readValue(rs.getString(1),Attachment.class),project);
+        return db.query("SELECT document::text FROM profile_attachment a WHERE project_id=? AND NOT EXISTS (SELECT 1 FROM assistant_project p WHERE p.id=a.project_id AND p.deleted_at IS NOT NULL) ORDER BY created_at,id",(rs,n)->json.readValue(rs.getString(1),Attachment.class),project);
     }
     public Attachment get(UUID project,UUID id) {
-        return db.query("SELECT document::text FROM profile_attachment WHERE project_id=? AND id=?",(rs,n)->json.readValue(rs.getString(1),Attachment.class),project,id)
+        return db.query("SELECT document::text FROM profile_attachment a WHERE project_id=? AND NOT EXISTS (SELECT 1 FROM assistant_project p WHERE p.id=a.project_id AND p.deleted_at IS NOT NULL) AND id=?",(rs,n)->json.readValue(rs.getString(1),Attachment.class),project,id)
                 .stream().findFirst().orElseThrow(()->bad(HttpStatus.NOT_FOUND,"Attachment not found in this project."));
     }
     public byte[] bytes(UUID project,UUID id) {
-        get(project,id); return db.queryForObject("SELECT content FROM profile_attachment WHERE project_id=? AND id=?",byte[].class,project,id);
+        get(project,id); return db.queryForObject("SELECT content FROM profile_attachment a WHERE project_id=? AND NOT EXISTS (SELECT 1 FROM assistant_project p WHERE p.id=a.project_id AND p.deleted_at IS NOT NULL) AND id=?",byte[].class,project,id);
     }
     public void validate(UUID project,String field,List<UUID> ids) {
         if(ids.size()>10 || new HashSet<>(ids).size()!=ids.size()) throw bad(HttpStatus.BAD_REQUEST,"Use at most ten different files per field.");
@@ -41,7 +41,7 @@ public class AttachmentService {
     @Transactional public Attachment upload(UUID project,String field,MultipartFile file) {
         if(!Workflow.FIELD_IDS.contains(field) && !field.equals("company_ethics")) throw bad(HttpStatus.BAD_REQUEST,"Invalid attachment field.");
         // Lock the owning row so concurrent uploads cannot bypass the quota.
-        if(db.query("SELECT id FROM workflow_project WHERE id=? FOR UPDATE",(rs,n)->rs.getObject(1,UUID.class),project).isEmpty()) throw bad(HttpStatus.NOT_FOUND,"Project not found.");
+        if(db.query("SELECT id FROM workflow_project w WHERE id=? AND NOT EXISTS (SELECT 1 FROM assistant_project p WHERE p.id=w.id AND p.deleted_at IS NOT NULL) FOR UPDATE",(rs,n)->rs.getObject(1,UUID.class),project).isEmpty()) throw bad(HttpStatus.NOT_FOUND,"Project not found.");
         var existing=list(project);
         if(existing.size()>=50 || existing.stream().mapToLong(Attachment::size).sum()+file.getSize()>100L*1024*1024) throw bad(HttpStatus.BAD_REQUEST,"Project attachment limit reached (50 files / 100 MiB).");
         if(file.isEmpty() || file.getSize()>10*1024*1024) throw bad(HttpStatus.BAD_REQUEST,"Each file must be nonempty and at most 10 MiB.");

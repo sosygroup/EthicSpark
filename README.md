@@ -6,6 +6,15 @@ Responses support Markdown, code, tables, Mermaid diagrams and downloadable text
 
 The catalogue contains **24 clusters, 144 actions and 184 references**, using Know, Protect, Inform, Assess, Validate and Respond. The updated author workbook is included as a separately versioned public dataset, with research observations omitted. See [data provenance](docs/DATA_PROVENANCE.md).
 
+## Latest development update — 16 October 2026
+
+- Project **⋯** menu: Rename project, Open folder in the desktop system file manager, and confirmed Delete project to a restorable Trash. Local project files are not deleted.
+- Browser-mode banner explains native-only features and includes the copyable `./scripts/desktop.sh` command. Contextual explanations remain for complex operations; redundant information icons on familiar buttons have been removed.
+- Local Ollama reliability: compact catalogue context retains all 144 source action texts, evidence, phases and roles; a stable catalogue prefix permits prompt-cache reuse. Configurable local timeout/output/reasoning settings and first-response retry support replace the previous three-minute failure.
+- Real local smoke check with `qwen3.8:27b`: a fictional support-portal request completed in 233.6 seconds with validated catalogue citations. This is compatibility evidence for one example, not an expert evaluation or a latency guarantee.
+
+See the [changelog](CHANGELOG.md), [usage guide](docs/CONVERSATIONAL_WORKSPACE.md) and [validation evidence](docs/VALIDATION.md).
+
 ## Start the desktop app
 
 Prerequisites: Docker Desktop (or Docker Engine with Compose v2), curl, and a graphical macOS/Linux session. The launcher downloads and verifies its pinned local Node runtime and installs the locked Electron dependency; no global Node/JDK/Maven setup is required to run the application.
@@ -29,6 +38,19 @@ Open [localhost:8082](http://localhost:8082). Browser use supports chat, uploads
 The script generates local database credentials in an ignored `.env` on first use. Existing data survives restarts. `docker compose stop` stops backend services without deleting the database.
 
 The previous structured workflow remains at [localhost:8082/?legacy=1](http://localhost:8082/?legacy=1) for existing projects and approved plans. Historical data is retained.
+
+## Use a local model without cloud API credentials
+
+1. Install and start [Ollama](https://ollama.com/download). Download a local model compatible with your hardware; the tested `qwen3.8:27b` example ran on an Apple M4 Pro with 48 GiB memory.
+2. Run `ollama list`. Use the exact **NAME** value, including its tag, as Model ID; the digest in the ID column is not the model name.
+3. In **Model settings**, choose **Ollama**, press **Load available models**, select the installed model, authorise local processing for your project and press **Done**.
+4. Send a prompt or attach relevant material. Keep Ollama and Docker running. Live folders, file changes and commands require the desktop app.
+
+The first local response may take several minutes to load the model and evaluate the catalogue. Ollama defaults to a 600-second request timeout, 8,192 output tokens and low reasoning effort where supported. The optional `.env` settings are documented in [.env.example](.env.example) and [troubleshooting](docs/CONVERSATIONAL_WORKSPACE.md#ollama-troubleshooting). Existing error messages remain in history; **Retry with saved context** submits a new request.
+
+## Manage projects
+
+Use **⋯** beside a project to rename it, open its linked folder or move it to Trash. **Open folder** requires a linked folder in the desktop app; the browser explains the limitation. **Trash** at the bottom of the sidebar restores saved conversations and material. Deletion is reversible and does not permanently erase stored data or delete local files. Link the folder again after restoring a project.
 
 ## Inspect the catalogue
 
@@ -77,7 +99,7 @@ The importer reads the actual XLSX workbook using Apache POI. The build includes
 - Requirement/Requirements map to Requirements; Operation/Operations map to Operations, with surrounding whitespace/case ignored.
 - All SDLC phases is stored as applicability scope, not a phase name.
 - Other phase names are retained; unresolved mappings generate warnings rather than semantic guesses.
-- Role lists split on semicolons; commas inside roles remain intact and are flagged for review.
+- Comma-only role lists in the updated workbook are parsed as separate roles. In mixed semicolon/comma lists, commas within role items are retained and flagged for review.
 - Original nonempty catalogue and reference cells retain worksheet/cell locations, exact text and cell types. General interview notes are outside the catalogue entity model. The original workbook bytes are also retained in the database.
 - The report flags incomplete and potentially truncated bibliographic metadata. No bibliographic corrections or source-support claims are invented.
 
@@ -97,7 +119,7 @@ Create `tmp` first if it does not exist. On invalid input, startup fails after w
 ./scripts/test.sh
 ```
 
-This builds with Java 25, installs Node for the Maven-integrated frontend build, checks TypeScript and bundles React. It runs importer regression tests and PostgreSQL integration tests covering catalogue integrity, manual review, stale edits, approval idempotency, immutable plans, profile reassessment and HTML/JSON export, including HTML escaping. It does not connect to the normal development database.
+This builds with Java 25, installs Node for the Maven-integrated frontend build, checks TypeScript and bundles React. The current Java suite has **33 tests** (13 importer, 2 gateway unit and 18 PostgreSQL integration cases). The separate desktop suite has **8 native-agent tests**, run by CI and described in [validation](docs/VALIDATION.md). It runs importer regression tests and PostgreSQL integration tests covering catalogue integrity, manual review, stale edits, approval idempotency, immutable plans, profile reassessment and HTML/JSON export, including HTML escaping. It does not connect to the normal development database.
 
 With a local JDK 25, use the Maven Wrapper:
 
@@ -132,7 +154,7 @@ MY-INPUT/            Local research inputs, excluded from Git and Docker
 
 See [MVP specification](docs/MVP_SPECIFICATION.md), [architecture](docs/ARCHITECTURE.md), [validation results](docs/VALIDATION.md), [manual walkthrough](docs/MANUAL_WORKFLOW.md) and [backup and restore](docs/OPERATIONS.md). See [conversational workspace](docs/CONVERSATIONAL_WORKSPACE.md) for the primary journey and [the earlier assisted workflow](docs/ASSISTED_WORKFLOW.md) for historical form-based projects.
 
-This is a local research prototype. Native commands run with user permissions, not inside an OS sandbox. Reviewer names are self-reported audit labels, not authenticated identities; all local projects are accessible to the local operator. Shared expert deployment, authentication, project permissions and catalogue publication review remain later increments. Cloud inference requires operator-configured API credentials and explicit per-run authorisation. Paper and handoff drafts, credentials, build products and temporary extraction files are excluded from Git.
+This is a local research prototype. Native commands run with user permissions, not inside an OS sandbox. Reviewer names are self-reported audit labels, not authenticated identities; all local projects are accessible to the local operator. Shared expert deployment, authentication, project permissions and catalogue publication review remain later increments. Cloud inference requires operator-configured API credentials and project/provider processing authorisation. Each native file edit or command separately requires one-use approval. Paper and handoff drafts, credentials, build products and temporary extraction files are excluded from Git.
 
 ## Coauthor collaboration and replication package
 

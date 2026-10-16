@@ -21,14 +21,14 @@ public class WorkflowService {
     public WorkflowService(JdbcTemplate db, CatalogueStore catalogues, AttachmentService attachments) { this.db = db; this.catalogues = catalogues; this.attachments=attachments; }
 
     public List<Summary> list() {
-        return db.query("SELECT id,name,revision,document::text,updated_at FROM workflow_project ORDER BY updated_at DESC", (rs,n) -> {
+        return db.query("SELECT id,name,revision,document::text,updated_at FROM workflow_project w WHERE NOT EXISTS (SELECT 1 FROM assistant_project p WHERE p.id=w.id AND p.deleted_at IS NOT NULL) ORDER BY updated_at DESC", (rs,n) -> {
             Project p = json.readValue(rs.getString("document"), Project.class);
             return new Summary(p.id(), p.name(), p.revision(), p.profile().version(), p.profile().confirmed(), rs.getTimestamp("updated_at").toInstant());
         });
     }
     public Project get(UUID id) { return read(id, false); }
     private Project read(UUID id, boolean lock) {
-        return db.query("SELECT document::text FROM workflow_project WHERE id=?" + (lock ? " FOR UPDATE" : ""),
+        return db.query("SELECT document::text FROM workflow_project w WHERE id=? AND NOT EXISTS (SELECT 1 FROM assistant_project p WHERE p.id=w.id AND p.deleted_at IS NOT NULL)" + (lock ? " FOR UPDATE" : ""),
                 (rs,n) -> json.readValue(rs.getString(1), Project.class), id).stream().findFirst().orElseThrow(() -> error(HttpStatus.NOT_FOUND,"Project not found."));
     }
     private Catalogue catalogue(Project p) { return catalogues.catalogue(p.catalogueVersion()).orElseThrow(() -> error(HttpStatus.CONFLICT,"Project catalogue is unavailable.")); }

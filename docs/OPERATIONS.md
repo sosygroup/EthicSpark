@@ -45,3 +45,11 @@ See [assisted workflow](ASSISTED_WORKFLOW.md) for provider configuration. Change
 Use `./scripts/desktop.sh` for the native window and local file agent, or `./scripts/run.sh` for browser-only chat. Flyway V4 adds conversation and operation-receipt tables. Backups include chats, generated artefacts and stored command output. Linked project files remain in the developer's own folder and are not part of the database backup. Folder-link configuration is local to the Electron user-data directory; it is not distributed in Git.
 
 An interrupted pending model request can be marked stopped from the conversation. Provider execution may still complete remotely; late results cannot overwrite cancellation. Native commands have a bounded lifetime and are stopped on app exit. Closing the app does not stop Docker services; use `docker compose stop` when needed. See [conversational workspace](CONVERSATIONAL_WORKSPACE.md) for trust boundaries and limits.
+
+## Project lifecycle and local-model recovery
+
+Flyway V5 adds a reversible project Trash marker. Deleted projects and their conversations are hidden from active views; attachments, artifacts and immutable receipts remain in the database and backups. Restore from Trash does not reconnect the native folder automatically. No permanent purge is implemented. Rename updates the conversational and historical workflow representations atomically.
+
+Ollama configuration is passed through Compose from the ignored local `.env`: `OLLAMA_TIMEOUT_SECONDS` (default 600, range 1–1800), `OLLAMA_MAX_OUTPUT_TOKENS` (default 8192, range 512–16000) and `OLLAMA_REASONING_EFFORT` (default low; empty uses the model default). Recreate the application after changing settings. A timeout is distinct from a failed connection: if model listing succeeds, inspect local model processing time before changing endpoints. See [Ollama troubleshooting](CONVERSATIONAL_WORKSPACE.md#ollama-troubleshooting).
+
+Use Retry with saved context after a model failure, including a failed first response. Stop pending responses before deleting projects or restarting the backend. Reopen the desktop app after updating native bridge code so Open folder and the other native controls use the current implementation.

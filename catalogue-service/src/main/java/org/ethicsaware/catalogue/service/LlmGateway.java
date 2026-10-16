@@ -59,10 +59,14 @@ public class LlmGateway {
         } else {
             body.put("messages",List.of(Map.of("role","system","content",system),Map.of("role","user","content",content)));
             body.put("response_format",Map.of("type","json_object"));
-            body.put(provider.equals("openai")?"max_completion_tokens":"max_tokens",16000);
+            body.put(provider.equals("openai")?"max_completion_tokens":"max_tokens",provider.equals("ollama")?integerSetting("OLLAMA_MAX_OUTPUT_TOKENS",8192,512,16000):16000);
+            if(provider.equals("ollama")) {
+                String effort=env.getProperty("OLLAMA_REASONING_EFFORT","low").strip();
+                if(!effort.isEmpty()) body.put("reasoning_effort",effort);
+            }
         }
         String payload=json.writeValueAsString(body);
-        JsonNode response=exchange(s,provider.equals("anthropic")?"/messages":"/chat/completions",payload,Duration.ofSeconds(180));
+        JsonNode response=exchange(s,provider.equals("anthropic")?"/messages":"/chat/completions",payload,Duration.ofSeconds(provider.equals("ollama")?integerSetting("OLLAMA_TIMEOUT_SECONDS",600,1,1800):180));
         String result;
         if(provider.equals("anthropic")) {
             if(!response.path("stop_reason").asText().equals("end_turn")) throw failure(HttpStatus.BAD_GATEWAY,"The model did not complete its proposal. Try a different model or reduce the input.");
@@ -75,6 +79,10 @@ public class LlmGateway {
         if(result.isBlank()) throw failure(HttpStatus.BAD_GATEWAY,"The provider returned no proposal.");
         return new Result(result,payload);
     }
+    private int integerSetting(String name,int fallback,int min,int max) {
+        try {int value=Integer.parseInt(env.getProperty(name,Integer.toString(fallback)));if(value>=min&&value<=max)return value;}catch(NumberFormatException ignored) {}
+        throw failure(HttpStatus.SERVICE_UNAVAILABLE,"Invalid server setting "+name+"; use a value from "+min+" to "+max+".");
+    }
     private void require(Settings s) { if(s.external()&&s.key().isBlank()) throw failure(HttpStatus.SERVICE_UNAVAILABLE,"Configure the provider API key on the server before running analysis."); }
     private JsonNode exchange(Settings s,String path,String body,Duration timeout) {
         try {
@@ -86,9 +94,11 @@ public class LlmGateway {
                 if(response.statusCode()<200 || response.statusCode()>=300) throw failure(HttpStatus.BAD_GATEWAY,s.name()+" returned HTTP "+response.statusCode()+". Check server configuration, model access, input compatibility and provider quota.");
                 byte[] bytes=stream.readNBytes(2*1024*1024+1);
                 if(bytes.length>2*1024*1024) throw failure(HttpStatus.BAD_GATEWAY,"Provider response exceeded the size limit.");
-                return json.readTree(new String(bytes,StandardCharsets.UTF_8));
+                try {return json.readTree(new String(bytes,StandardCharsets.UTF_8));}
+                catch(Exception e) {throw failure(HttpStatus.BAD_GATEWAY,s.name()+" returned unreadable JSON. Check model compatibility and retry.");}
             }
         } catch(ResponseStatusException e) { throw e; }
+        catch(HttpTimeoutException e) { throw failure(HttpStatus.GATEWAY_TIMEOUT,s.name()+" did not finish within "+timeout.toSeconds()+" seconds. The endpoint may be reachable but the model is still loading or processing context. Try a shorter conversation or a faster model."+(s.id().equals("ollama")?" Local operators can adjust OLLAMA_TIMEOUT_SECONDS.":"")); }
         catch(InterruptedException e) { Thread.currentThread().interrupt();throw failure(HttpStatus.BAD_GATEWAY,"Model request was interrupted."); }
         catch(Exception e) { throw failure(HttpStatus.BAD_GATEWAY,"Cannot reach "+s.name()+" or read its response. Check the server endpoint and try again."); }
     }

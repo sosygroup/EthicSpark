@@ -160,3 +160,101 @@ button.help-info > svg {
 .side-bottom .help-action > button {
   margin-bottom: 0;
 }
+
+.project-row-shell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.project-row-shell .help-action {
+  flex: 1;
+  width: auto;
+}
+.assistant-root .project-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  flex: 0 0 28px;
+  border-radius: 6px;
+}
+.assistant-root .project-menu-button:hover {
+  background: #e3e5dd;
+}
+.project-menu-label {
+  margin-left: 10px;
+}
+.project-menu-label small {
+  display: block;
+  color: #666;
+  font-size: 11px;
+}
+.trash-project-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+.trash-project-row > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.environment-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 24px;
+  background: #edf3f8;
+  border-bottom: 1px solid #dae4ed;
+  color: #345168;
+  font-size: 12px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+.environment-banner > svg {
+  flex-shrink: 0;
+}
+.environment-banner > div {
+  flex: 1;
+  min-width: 0;
+}
+.environment-banner code {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #fff;
+  color: #244254;
+  white-space: nowrap;
+}
+.environment-banner.desktop-mode {
+  background: #eff4ef;
+  border-color: #dce6da;
+  color: #405940;
+}
+.assistant-root .launch-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid #bacddd;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .environment-banner {
+    padding: 9px 14px;
+    align-items: flex-start;
+    gap: 7px;
+  }
+  .launch-copy span {
+    display: none;
+  }
+  .environment-banner > svg {
+    display: none;
+  }
+}

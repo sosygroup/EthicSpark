@@ -100,7 +100,17 @@ class WorkspaceAgent {
     this.startWatch(project, canonical);
     return this.workspace(project);
   }
+  async openFolder(project, open) {
+    const root = await this.root(project);
+    if (!(await fs.stat(root)).isDirectory())
+      throw Error("The linked folder is no longer a directory.");
+    const error = await open(root);
+    if (error) throw Error(error);
+    return null;
+  }
   async unlink(project) {
+    for (const [ticket, value] of this.tickets)
+      if (value.project === project) this.tickets.delete(ticket);
     this.watchers.get(project)?.close();
     this.watchers.delete(project);
     delete this.roots[project];

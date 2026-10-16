@@ -59,11 +59,11 @@ The current app does not provide built-in live web search, audio transcription, 
 
 PostgreSQL stores projects, threads, messages, generated proposals/documents, attachment snapshots and operation receipts. Native folder files stay on disk. File-context manifests record relative names and SHA-256; complete read contents enter the model request but are not separately stored in these manifests. Responses and approved command output may of course contain project content. Treat database backups and exports as project data.
 
-Request keys prevent duplicate calls for identical submissions and reject reuse with different input. Only one response per conversation runs at a time. Stop marks a pending response cancelled; a later provider result cannot overwrite it. An already sent provider request may still finish and be billed. Requests use a 180-second provider timeout, a 16,000-token output limit and no silent model fallback. The last 40 completed conversation messages enter context, with an explicit omitted-history count.
+Request keys prevent duplicate calls for identical submissions and reject reuse with different input. Only one response per conversation runs at a time. Stop marks a pending response cancelled; a later provider result cannot overwrite it. An already sent provider request may still finish and be billed. OpenAI/Anthropic requests use a 180-second provider timeout and a 16,000-token output limit. Ollama defaults to a 600-second timeout, 8,192 output tokens and low reasoning effort (where supported), configurable with `OLLAMA_TIMEOUT_SECONDS`, `OLLAMA_MAX_OUTPUT_TOKENS` and `OLLAMA_REASONING_EFFORT`. An empty effort value uses the model default. There is no silent model fallback. Timeout errors distinguish slow processing from connection failures. The last 40 completed conversation messages enter context, with an explicit omitted-history count.
 
 ## Catalogue and previous work
 
-New projects bind to the latest imported catalogue. The model receives cluster definitions, label characteristics, all source actions and the reference registry. Catalogue citations are checked against that version. Other engineering advice is permitted and should be distinguished from catalogue-supported recommendations.
+New projects bind to the latest imported catalogue. The model receives cluster definitions, label characteristics, all source action texts, evidence, phases and roles, plus a registry of reference IDs and its count. Repeated import coordinates, action concern lists and full bibliographic records are not sent with every conversation turn. Full references and provenance remain available in the source catalogue APIs. Catalogue citations are checked against that version. Other engineering advice is permitted and should be distinguished from catalogue-supported recommendations.
 
 The updated author workbook is distributed through a separately versioned public dataset; see [data provenance](DATA_PROVENANCE.md). Importer v2 supports its comma-separated lists and preserves raw workbook evidence. Existing imported versions and approved structured-workflow plans are unchanged.
 
@@ -83,6 +83,26 @@ Implementation references: [Electron security guidance](https://www.electronjs.o
 
 ## In-app explanations
 
-Click the circled **i** beside a section, field or action to open its explanation. Each explanation describes the purpose, expected next step and any relevant prerequisite or effect on shared context, files or model requests. These controls remain available beside disabled actions and do not perform the action they describe. Close explanation, Escape or clicking outside returns to the underlying view; keyboard focus returns to the information control.
+Click the circled **i** beside a section, field or action that needs guidance to open its explanation. Familiar commands such as Close, Copy, Download and New conversation do not have additional information icons. Each explanation describes the purpose, expected next step and any relevant prerequisite or effect on shared context, files or model requests. These controls remain available beside disabled actions and do not perform the action they describe. Close explanation, Escape or clicking outside returns to the underlying view; keyboard focus returns to the information control.
 
 The information icon in the top bar opens **How to use EthicSpark**, a short first-use guide available even in an existing conversation or on a narrow screen. Model connection, processing consent, live-folder access, generated downloads and operation approvals have separate explanations. The earlier structured workflow also includes page guides and explanations beside its actions and editable fields. All help text is in English.
+
+## Manage projects
+
+Open the **⋯** menu beside a project in the sidebar:
+
+- **Rename project** changes its display name while retaining conversations, catalogue version and the linked folder. The earlier structured-workflow view uses the same new name.
+- **Open folder** opens the project's linked local directory in Finder or the system file manager. It does not open a different folder picker or share additional context. It requires the desktop app and an existing folder link; the browser menu explains this limitation.
+- **Delete project** asks for confirmation, then moves the project and its conversations to **Trash**. Saved material and immutable operation history are retained; this is not permanent data erasure. No local project file is deleted. The desktop folder link is cleared and future processing consent must be granted again.
+
+Open **Trash** at the bottom of the sidebar to restore a project. Its saved messages, attachments, artifacts and receipts return. Link its local folder again if needed. Stop running responses or commands before deleting a project. This release does not provide permanent purge.
+
+The opening mode banner states which environment is in use. Browser mode explains that live folders, file changes and commands need the desktop app, displays `./scripts/desktop.sh` and offers Copy command. Run it from the EthicSpark repository with Docker running. Desktop mode confirms native functionality and reminds the user that edits and commands need approval.
+
+## Ollama troubleshooting
+
+If model listing works but a response fails after several minutes, the connection may be healthy while the model is still evaluating the catalogue. The first response includes all 144 source actions and can take several minutes on a local model. The activity text explains this. Check Ollama's processing log and current model rather than reinstalling it. A timeout does not establish that the endpoint is unreachable.
+
+The compact catalogue projection preserves the source text of every action and its evidence, phases and roles. It avoids sending full bibliography and repeated import metadata in every chat turn. Large attachments and long conversations can still exceed a model's practical context or performance limits; start a focused conversation when needed. Model reasoning controls follow [Ollama's compatibility documentation](https://docs.ollama.com/api/openai-compatibility).
+
+After a provider failure, **Retry with saved context** submits a new request using the saved conversation, including when the first response failed. Each retry is a new inference request. Earlier error messages remain in history.

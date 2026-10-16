@@ -10,23 +10,25 @@ This repository is the working software artefact for the draft paper **Bridging 
 | Catalogue import report | `docs/validation/catalogue-import-report.json` | Source-review warnings and canonicalisation decisions for the supplied workbook |
 | Import rules and implementation | `catalogue-core/` | Deterministic catalogue extraction and validation |
 | Application and schema | `catalogue-service/` | Project workflow, immutable approvals and Flyway migrations |
-| User interface | `catalogue-web/` | English React/Material UI manual workflow |
+| User interface | `catalogue-web/` | English conversational workspace and preserved structured workflow |
+| Native project agent | `desktop/` | Live local folder access, file-manager opening and approved file changes/commands |
+| Development changes | `CHANGELOG.md` | Scope and reproducibility changes in the current baseline |
 | Walkthrough | `docs/MANUAL_WORKFLOW.md` | Repeatable illustrative C-01 usage scenario |
 | Automated checks | `scripts/test.sh` and module test sources | Import and real-PostgreSQL integration checks |
 | Design and boundaries | `docs/MVP_SPECIFICATION.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md` | Intended behaviour, implemented scope and verification limits |
 
 The distributed workbook omits General research notes and individual expert observations. The original remains local. See [data provenance](DATA_PROVENANCE.md) for the exact transformation, source hashes and preservation checks. The importer retains the distributed workbook in each snapshot.
 
-Paper drafts, the developer handoff DOCX, local credentials, database volumes, downloaded exports, temporary analysis files and build products are not included. The browser-generated screenshots use an explicitly illustrative Demo project. The example is not evidence of empirical effectiveness.
+Paper drafts, the developer handoff DOCX, local credentials, database volumes, downloaded exports, temporary analysis files and build products are not included. Screenshots use illustrative or synthetic examples. The Ollama validation screenshot shows one real local model response to a fictional support-portal prompt; the earlier UI fixture is explicitly labelled as such. Neither establishes empirical effectiveness. Test conversations, native folder-link configuration and model weights are not distributed.
 
 ## Reproduce the current software baseline
 
 1. Clone the repository and enter its directory. The catalogue workbook is already included.
 2. Start Docker Desktop or Docker Engine with Compose v2. Shell instructions use a POSIX shell; Windows users can run them in WSL2 with Docker integration.
 3. Run `./scripts/run.sh`. The first build downloads pinned Java/Node images and package dependencies, generates local database credentials and imports the workbook.
-4. Open http://localhost:8082. Choose Start with an example and supply a reviewer name. No existing project database or browser storage is required.
+4. Open http://localhost:8082 for the conversational browser workspace. Configure a provider/model or a local Ollama model as described in the usage guide. No existing project database or browser storage is required. For the credential-free legacy walkthrough, open `/?legacy=1`, choose Start with an example and supply a reviewer name.
 5. For the current primary UI follow `docs/CONVERSATIONAL_WORKSPACE.md` and launch `./scripts/desktop.sh`. A real model connection is needed for conversational responses. The legacy manual workflow remains at `/?legacy=1` and needs no model credentials. Source-distributed desktop dependencies are documented; native actions require a local graphical session.
-6. Run `./scripts/test.sh` to build and validate against an isolated PostgreSQL instance. It does not use the normal application database. The Java suite contains 13 importer tests and 15 integration cases, including six conversational cases. Seven separate native-agent tests exercise permission decisions, real temporary file changes and child processes. Provider tests use local HTTP stubs, not live inference.
+6. Run `./scripts/test.sh` to build and validate against an isolated PostgreSQL instance. It does not use the normal application database. The Java suite contains 13 importer unit tests, 2 gateway unit tests and 18 integration cases, including nine conversational cases. Eight separate native-agent tests exercise permission decisions, real temporary file changes and child processes. Automated provider tests use local HTTP stubs, not live inference. The separately recorded manual Ollama smoke check in `docs/VALIDATION.md` requires an installed model and is not part of CI.
 7. Save the Git commit SHA, test log and exports with any reported observations. `git rev-parse HEAD` identifies the source baseline.
 
 The first build requires network access to container and package registries. Subsequent use depends on local caches. Java/Node/Maven versions, application dependencies and container image digests are specified in the repository. Timestamps, project/plan UUIDs and reviewer labels vary between runs; compare source content, state transitions, included entries and disclosed gaps rather than byte-identical whole exports.
@@ -37,7 +39,7 @@ Expected conversational result: a persisted conversation from a free prompt, rel
 
 ## Relationship to the paper
 
-The source workbook and importer instantiate the catalogue structure. The current tool supports manual and assisted catalogue application. Adapter tests establish transport and schema behaviour; no live-provider quality evaluation has been performed. The repository does not yet contain the original expert-interview dataset, full analysis scripts or an empirical evaluation of the tool. The catalogue's reported expert validation must not be presented as validation of the tool's usability or effectiveness.
+The source workbook and importer instantiate the catalogue structure. The current tool supports manual and assisted catalogue application. Adapter tests establish transport and schema behaviour. A single live local Ollama smoke check additionally confirms a successful response for a fictional example; no systematic live-model quality evaluation has been performed. The repository does not yet contain the original expert-interview dataset, full analysis scripts or an empirical evaluation of the tool. The catalogue's reported expert validation must not be presented as validation of the tool's usability or effectiveness.
 
 The paper's final claims, replication datasets and analysis procedures must be reconciled with the released artefact before submission. A public version may also need a review-appropriate anonymous distribution; this named repository is public.
 

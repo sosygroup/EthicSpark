@@ -38,6 +38,8 @@ class AssistantWorkflowIT {
     }
     @Autowired AssistantService service;
     @Autowired CatalogueStore catalogues;
+    @Autowired WorkflowService workflow;
+    @Autowired AttachmentService attachments;
     @Autowired org.springframework.jdbc.core.JdbcTemplate db;
     @BeforeEach void prepare() throws Exception {
         byte[] source=Files.readAllBytes(Path.of(System.getProperty("catalogue.test.workbook")));catalogues.save(new WorkbookImporter().read(source),source);
@@ -45,12 +47,61 @@ class AssistantWorkflowIT {
     }
     Thread conversation() {var p=service.createProject(new CreateProject("Conversation test"));return service.createThread(new CreateThread(p.id()));}
     Send request(Thread t,String text,Workspace workspace,boolean continuation) {return new Send(t.revision(),UUID.randomUUID(),text,"openai","gpt-test-model",true,List.of(),workspace,continuation);}
+    @Test void compactModelCatalogueKeepsEverySourceActionAndItsMeaningfulFields() {
+        var source=catalogues.catalogue(catalogues.versions().getFirst().id()).orElseThrow();
+        var compact=AssistantService.modelCatalogue(source);String encoded=JSON.writeValueAsString(compact);
+        var tree=JSON.readTree(encoded);assertThat(tree.size()).isEqualTo(24);
+        for(int i=0;i<source.clusters().size();i++) {
+            var cluster=source.clusters().get(i);var item=tree.get(i);
+            assertThat(item.path("id").asText()).isEqualTo(cluster.id());assertThat(item.path("definition").asText()).isEqualTo(cluster.definition());
+            assertThat(item.path("labelMappings").size()).isEqualTo(cluster.labelMappings().size());
+            assertThat(item.path("actions").size()).isEqualTo(6);
+            for(int j=0;j<6;j++) {var expected=cluster.actions().get(j);var actual=item.path("actions").get(j);
+                assertThat(actual.path("id").asText()).isEqualTo(expected.id());assertThat(actual.path("text").asText()).isEqualTo(expected.text());assertThat(actual.path("evidence").asText()).isEqualTo(expected.evidence());
+                assertThat(actual.path("phases").toString()).isEqualTo(JSON.writeValueAsString(expected.phases()));assertThat(actual.path("roles").toString()).isEqualTo(JSON.writeValueAsString(expected.roles()));
+            }
+        }
+        assertThat(encoded).doesNotContain("\"expertObservations\"","\"source\"");
+        assertThat(encoded.length()).isLessThan((int)(JSON.writeValueAsString(Map.of("clusters",source.clusters(),"references",source.references())).length()*0.65));
+    }
+    @Test void renamesAProjectWithoutChangingConversationIdentityOrCatalogue() {
+        Thread t=conversation();var original=service.project(t.projectId());
+        var renamed=service.renameProject(t.projectId(),new CreateProject("  Renamed workspace  "));
+        assertThat(renamed.name()).isEqualTo("Renamed workspace");assertThat(renamed.id()).isEqualTo(original.id());assertThat(renamed.catalogueVersion()).isEqualTo(original.catalogueVersion());
+        assertThat(service.thread(t.id()).projectId()).isEqualTo(renamed.id());assertThat(workflow.get(renamed.id()).name()).isEqualTo(renamed.name());
+        assertThat(workflow.list().stream().filter(p->p.id().equals(renamed.id())).findFirst().orElseThrow().name()).isEqualTo(renamed.name());
+        assertThatThrownBy(()->service.renameProject(renamed.id(),new CreateProject("  "))).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThatThrownBy(()->service.renameProject(renamed.id(),new CreateProject("a".repeat(161)))).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThat(service.project(renamed.id()).name()).isEqualTo("Renamed workspace");
+    }
+    @Test void trashHidesTheProjectAndRestorePreservesMessagesAttachmentsAndImmutableReceipts() {
+        Thread t=conversation();UUID project=t.projectId();
+        var attachment=attachments.upload(project,"additional",new org.springframework.mock.web.MockMultipartFile("file","notes.txt","text/plain","Saved material".getBytes(StandardCharsets.UTF_8)));
+        RESPONSE.set(new Output("A proposed command",List.of(),List.of(),List.of(new Operation("","command","","","","echo",List.of("hello"),"Example command")),List.of()));
+        var sent=service.send(t.id(),request(t,"Propose a command",null,false));var message=sent.messages().getLast();
+        var saved=service.receipt(t.id(),message.id(),new Execution(message.output().operations().getFirst().id(),"rejected","Not needed","",null));
+        service.trashProject(project);
+        assertThat(service.projects()).noneMatch(p->p.id().equals(project));assertThat(service.threads()).noneMatch(v->v.projectId().equals(project));assertThat(workflow.list()).noneMatch(p->p.id().equals(project));
+        assertThat(service.trashedProjects()).anyMatch(p->p.id().equals(project));
+        assertThatThrownBy(()->service.thread(t.id())).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThatThrownBy(()->service.createThread(new CreateThread(project))).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThatThrownBy(()->service.renameProject(project,new CreateProject("Hidden"))).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThatThrownBy(()->attachments.get(project,attachment.id())).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThatThrownBy(()->workflow.get(project)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        service.restoreProject(project);
+        assertThat(service.thread(t.id())).isEqualTo(saved);assertThat(attachments.get(project,attachment.id()).text()).isEqualTo("Saved material");
+        assertThat(service.trashedProjects()).noneMatch(p->p.id().equals(project));assertThat(workflow.get(project).id()).isEqualTo(project);
+        assertThatThrownBy(()->service.restoreProject(project)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThatThrownBy(()->db.update("DELETE FROM assistant_receipt WHERE id=?",saved.receipts().getFirst().id())).hasMessageContaining("immutable");
+    }
     @Test void startsFromOnePromptWithoutProfileOrClusterSelectionAndPersistsRichOutput() {
         Thread t=conversation();var sent=service.send(t.id(),request(t,"Help me design a Java API.",null,false));
         assertThat(sent.messages()).hasSize(2);assertThat(sent.messages().getLast().status()).isEqualTo("complete");assertThat(sent.messages().getLast().output().artifacts().getFirst().name()).isEqualTo("notes.md");
         assertThat(sent.messages().getLast().inputSha256()).hasSize(64);assertThat(service.thread(t.id())).isEqualTo(sent);
         assertThat(db.queryForObject("SELECT count(*) FROM profile_version WHERE project_id=?",Integer.class,t.projectId())).isZero();
         assertThat(INPUT.get()).contains("Do NOT ask the user to complete a profile","general software development assistant","C-24","184").doesNotContain("OPENAI_API_KEY");
+        var input=JSON.readTree(INPUT.get());String context=input.path("messages").get(1).path("content").get(0).path("text").asText();
+        assertThat(context).startsWith("{\"catalogue\":");var material=JSON.readTree(context);assertThat(material.path("referenceRegistry").path("count").asInt()).isEqualTo(184);assertThat(material.path("referenceRegistry").path("ids").size()).isEqualTo(184);
     }
     @Test void fileReadsAndEditsAreProposalsUntilASeparateNativeReceiptIsRecorded() {
         Thread t=conversation();RESPONSE.set(new Output("I need the current file before changing it.",List.of(),List.of("src/App.java"),List.of(),List.of()));
@@ -72,13 +123,15 @@ class AssistantWorkflowIT {
         Thread t=conversation();RESPONSE.set(new Output("Proposed operation",List.of(),List.of(),List.of(new Operation("","write","../outside.txt","unsafe","","",List.of(),"Try an unsafe path")),List.of()));
         Thread result=service.send(t.id(),request(t,"Make a change.",null,false));assertThat(result.messages().getLast().status()).isEqualTo("error");assertThat(result.messages().getLast().output()).isNull();assertThat(result.receipts()).isEmpty();assertThat(result.messages().getFirst().text()).isEqualTo("Make a change.");
         RESPONSE.set(new Output("Unsupported citation",List.of(new Citation("C-99",List.of(),"Invented")),List.of(),List.of(),List.of()));
-        assertThat(service.send(t.id(),request(result,"Try again.",null,false)).messages().getLast().status()).isEqualTo("error");
+        Thread failed=service.send(t.id(),request(result,"Try again.",null,false));assertThat(failed.messages().getLast().status()).isEqualTo("error");
+        RESPONSE.set(new Output("Retried using the saved request.",List.of(),List.of(),List.of(),List.of()));
+        assertThat(service.send(t.id(),request(failed,"Retry with saved context.",null,true)).messages().getLast().status()).isEqualTo("complete");
     }
     @Test void cancelledResponsesCannotOverwriteCancellationWhenProviderFinishesLater() throws Exception {
         Thread t=conversation();started=new CountDownLatch(1);release=new CountDownLatch(1);
         try(var executor=Executors.newSingleThreadExecutor()) {
             var future=executor.submit(()->service.send(t.id(),request(t,"Take your time.",null,false)));
-            assertThat(started.await(5,TimeUnit.SECONDS)).isTrue();Thread stopped=service.cancel(t.id());assertThat(stopped.messages().getLast().status()).isEqualTo("cancelled");release.countDown();assertThat(future.get(5,TimeUnit.SECONDS).messages().getLast().status()).isEqualTo("cancelled");
+            assertThat(started.await(5,TimeUnit.SECONDS)).isTrue();assertThatThrownBy(()->service.trashProject(t.projectId())).hasMessageContaining("running response");Thread stopped=service.cancel(t.id());assertThat(stopped.messages().getLast().status()).isEqualTo("cancelled");release.countDown();assertThat(future.get(5,TimeUnit.SECONDS).messages().getLast().status()).isEqualTo("cancelled");
         }finally{release.countDown();started=null;release=null;}
     }
     @Test void contextTraversalAndAnUnreadExistingFileFingerprintAreRejected() {
