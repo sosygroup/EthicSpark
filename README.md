@@ -6,8 +6,11 @@ Responses support Markdown, code, tables, Mermaid diagrams and downloadable text
 
 The catalogue contains **24 clusters, 144 actions and 184 references**, using Know, Protect, Inform, Assess, Validate and Respond. The updated author workbook is included as a separately versioned public dataset, with research observations omitted. See [data provenance](docs/DATA_PROVENANCE.md).
 
+You can also **Explore catalogue** without configuring a model. Browse source clusters, actions, ethics labels, phases, roles and all references in the browser or desktop app. The local backend must be running, but no API key or Ollama is required. Open the sidebar’s **Explore catalogue** button or visit [the standalone explorer](http://localhost:8082/?catalogue=1).
+
 ## Latest development update — 16 October 2026
 
+- **Explore catalogue** independently of AI: search clusters/actions, filter by category, SDLC phase and ethics label, inspect all references and import notes, and switch imported versions. Available from the workspace or directly at `/?catalogue=1`; no API key, Ollama or project is required.
 - Project **⋯** menu: Rename project, Open folder in the desktop system file manager, and confirmed Delete project to a restorable Trash. Local project files are not deleted.
 - Browser-mode banner explains native-only features and includes the copyable `./scripts/desktop.sh` command. Contextual explanations remain for complex operations; redundant information icons on familiar buttons have been removed.
 - Local Ollama reliability: compact catalogue context retains all 144 source action texts, evidence, phases and roles; a stable catalogue prefix permits prompt-cache reuse. Configurable local timeout/output/reasoning settings and first-response retry support replace the previous three-minute failure.
@@ -23,7 +26,7 @@ Prerequisites: Docker Desktop (or Docker Engine with Compose v2), curl, and a gr
 ./scripts/desktop.sh
 ```
 
-Open **Model settings** to choose OpenAI, Anthropic Claude or Ollama. Configure cloud API keys only in your ignored local `.env`, or start Ollama and install a model. Authorise the selected provider to process the current project's shared context. Model choice is remembered. You can then start with a single prompt; a folder and attachments are optional.
+For catalogue browsing, choose **Explore catalogue** immediately. For an AI conversation, open **Model settings** to choose OpenAI, Anthropic Claude or Ollama. Configure cloud API keys only in your ignored local `.env`, or start Ollama and install a model. Authorise the selected provider to process the current project's shared context. Model choice is remembered. You can then start with a single prompt; a folder and attachments are optional.
 
 See [conversational workspace](docs/CONVERSATIONAL_WORKSPACE.md) for the complete journey, folder freshness, action previews, permissions and limitations. This is a source-distributed desktop MVP, not a signed self-contained installer. Host project commands still need the project's usual tools installed.
 

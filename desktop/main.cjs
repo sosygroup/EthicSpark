@@ -7,6 +7,7 @@ const {
   session,
   shell,
 } = require("electron");
+const { safeExternalUrl } = require("./external-link.cjs");
 const path = require("node:path");
 const { WorkspaceAgent } = require("./workspace-agent.cjs");
 const target = new URL(process.env.ETHICSPARK_URL || "http://localhost:8082/");
@@ -104,6 +105,7 @@ app.whenReady().then(async () => {
     if (choice.canceled) return null;
     return agent.link(project, choice.filePaths[0]);
   });
+  handle("reference:open", (url) => shell.openExternal(safeExternalUrl(url)));
   handle("workspace:get", (project) => agent.workspace(project));
   handle("workspace:open", (project) =>
     agent.openFolder(project, (root) => shell.openPath(root)),

@@ -101,6 +101,7 @@ export type Preview = {
 };
 export interface Desktop {
   linkFolder: (project: string) => Promise<Workspace | null>;
+  openExternalLink?: (url: string) => Promise<void>;
   openFolder: (project: string) => Promise<null>;
   workspace: (project: string) => Promise<Workspace | null>;
   unlinkFolder: (project: string) => Promise<null>;

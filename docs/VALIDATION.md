@@ -106,3 +106,18 @@ The conversational catalogue projection now retains every cluster definition/lab
 Validation: 33 Java/PostgreSQL tests passed, including exact preservation of all action texts/evidence/phases/roles, reference counts, stable catalogue prefix, local generation settings and a simulated timeout returning 504. The previously completed 8 native-agent checks are unaffected. A real local `qwen3.8:27b` request (installed digest prefix `47951e4a6661`, MLX runner) using only the public catalogue and a fictional support-portal prompt completed in 233.6 seconds with 19,720 prompt tokens and five validated catalogue citations. No cloud provider, personal project file or native operation was involved. This single smoke check establishes transport/schema compatibility for that example, not general reasoning quality, expert validation or guaranteed latency. Cache speedup has not been benchmarked. The sample conversation remains in the local project “Ollama validation — synthetic example”. Screenshot: `screenshots/ollama-live-validation.png`.
 
 The final regression run also verifies Retry with saved context after a conversation's first model failure, without requiring an earlier successful assistant output. It passed within the 33-test Java/PostgreSQL suite. The local backend was updated only after checking that no responses were pending.
+
+## Independent catalogue explorer — 16 October 2026
+
+The Docker production build passed TypeScript checking, frontend bundling and 15 Java unit tests (13 importer and two gateway tests). All nine native tests passed, including the new source-link URL validator. PostgreSQL integration tests were not repeated for this UI-only increment; the previous full-stack evidence remains documented above.
+
+Browser checks exercised the standalone `/?catalogue=1` route and the workspace viewer with **Connect a model** displayed, without sending a model request. The standalone component reads only catalogue versions, cluster details, references and the import report; it does not mount the conversational workspace or invoke provider/model endpoints. Live checks confirmed:
+
+- 24 clusters, 144 source actions and 184 references for importer v2, with 179 retained warnings.
+- The Validate category reduces C-01 to its corresponding action; Operations reduces it to Respond. Ethics-label choices and filter reset work. A nonmatching search displays zero clusters.
+- Action-linked references show three records for C01-A1; the complete reference registry can be searched to R-184. Import notes retain warning messages and source-cell locations.
+- Selecting the 14 October snapshot switches to importer v1 and its 204 warnings.
+- Closing the workspace viewer preserves a synthetic unsent message; no project or message was created by this check.
+- At a 390-pixel viewport, document scroll width equals client width. Desktop layout and browser console were checked with no application errors recorded.
+
+Native source links are restricted to absolute HTTP/HTTPS URLs without embedded credentials. Automated validation rejects file, JavaScript, data and relative targets, whitespace and oversized values. Opening a link through the installed Electron shell was not exercised in the browser check; an already-running desktop process needs reopening to load the new preload bridge.

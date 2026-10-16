@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, isValidElement } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  isValidElement,
+  lazy,
+  Suspense,
+} from "react";
 import type { ReactElement, MouseEvent } from "react";
 import {
   Alert,
@@ -33,6 +40,7 @@ import "./assistant.css";
 import Diagram from "./Diagram";
 import { Info, HelpButton, HelpMuiButton } from "./Help";
 
+const CatalogueExplorer = lazy(() => import("./CatalogueExplorer"));
 const native = window.ethicsparkDesktop;
 async function api<T>(
   path: string,
@@ -51,6 +59,7 @@ async function api<T>(
 }
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, string> = {
+    book: "M12 5c-3-2-7-2-10-1v15c3-1 7-1 10 1m0-15c3-2 7-2 10-1v15c-3-1-7-1-10 1Zm0 0v15",
     copy: "M9 3h12v14H9ZM3 7h3v14h12v-1",
     more: "M5 12h.01M12 12h.01M19 12h.01",
     edit: "m4 16 11-11 4 4-11 11-5 1Zm9-9 4 4",
@@ -197,6 +206,7 @@ export default function App() {
   } | null>(null);
   const [renameName, setRenameName] = useState("");
   const [managing, setManaging] = useState(false);
+  const [catalogueOpen, setCatalogueOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [trashed, setTrashed] = useState<Project[]>([]);
   const abort = useRef<AbortController | null>(null),
@@ -784,6 +794,16 @@ export default function App() {
           <Icon name="plus" />
           New conversation
         </HelpButton>
+        <button
+          className="side-new catalogue-launch"
+          onClick={() => {
+            setCatalogueOpen(true);
+            setSidebar(false);
+          }}
+        >
+          <Icon name="book" />
+          Explore catalogue
+        </button>
         <div className="side-heading">
           <span>
             Projects <Info topic="projects" />
@@ -882,6 +902,14 @@ export default function App() {
             </span>
           </div>
           <div className="topbar-actions">
+            <button
+              className="icon-button"
+              aria-label="Explore catalogue"
+              title="Explore catalogue"
+              onClick={() => setCatalogueOpen(true)}
+            >
+              <Icon name="book" />
+            </button>
             <Info topic="start" />
             <HelpButton
               help="settings"
@@ -975,6 +1003,9 @@ export default function App() {
                 <br />
                 Start where you are. We’ll work through the details together.
               </p>
+              <Button onClick={() => setCatalogueOpen(true)}>
+                Explore catalogue without a model
+              </Button>
               <div className="starter-grid">
                 {[
                   [
@@ -1050,7 +1081,10 @@ export default function App() {
                         {m.status === "pending" ? (
                           <div className="thinking">
                             <span className="thinking-dot" />
-                            {activity || (m.provider === "ollama" ? "Processing with Ollama locally. The first response may take several minutes…" : "Working on your request…")}
+                            {activity ||
+                              (m.provider === "ollama"
+                                ? "Processing with Ollama locally. The first response may take several minutes…"
+                                : "Working on your request…")}
                           </div>
                         ) : m.status === "error" ? (
                           <div className="response-error">
@@ -1493,6 +1527,21 @@ export default function App() {
             </div>
           )}
         </aside>
+      )}
+      {catalogueOpen && (
+        <Dialog
+          open
+          fullScreen
+          aria-labelledby="catalogue-explorer-title"
+          onClose={() => setCatalogueOpen(false)}
+        >
+          <Suspense fallback={<p>Loading catalogue explorer…</p>}>
+            <CatalogueExplorer
+              onClose={() => setCatalogueOpen(false)}
+              initialVersion={project?.catalogueVersion}
+            />
+          </Suspense>
+        </Dialog>
       )}
       <Menu
         anchorEl={projectMenu?.anchor}

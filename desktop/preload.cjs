@@ -8,6 +8,7 @@ const listen = (channel, callback) => {
 contextBridge.exposeInMainWorld(
   "ethicsparkDesktop",
   Object.freeze({
+    openExternalLink: (url) => ipcRenderer.invoke("reference:open", url),
     linkFolder: (project) => ipcRenderer.invoke("workspace:link", project),
     openFolder: (project) => ipcRenderer.invoke("workspace:open", project),
     workspace: (project) => ipcRenderer.invoke("workspace:get", project),

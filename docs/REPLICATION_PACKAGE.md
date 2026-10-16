@@ -54,3 +54,7 @@ The paper's final claims, replication datasets and analysis procedures must be r
 - Add final citation metadata, paper reference and repository/archive links without placeholder DOI or acceptance claims.
 
 Public visibility permits anyone to inspect the repository. Write access is managed through GitHub permissions and does not automatically extend to coauthors.
+
+## Model-independent inspection
+
+The source catalogue can be inspected through **Explore catalogue** or `http://localhost:8082/?catalogue=1` after starting the local Docker stack. This path uses read-only catalogue endpoints and requires neither cloud credentials nor a local model. It exposes version provenance, source-review notes, original actions and bibliographic records, enabling dataset inspection separately from model-dependent assistant behaviour. It does not resolve the source-review warnings or constitute an expert evaluation of the tool.

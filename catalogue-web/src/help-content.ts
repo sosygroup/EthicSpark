@@ -1,12 +1,16 @@
 export type HelpEntry = { title: string; text: string };
 export const help: Record<string, HelpEntry> = {
+  explorer: {
+    title: "Explore the source catalogue",
+    text: "Browse the imported catalogue without configuring a model or creating a project. Search clusters and actions, filter by action category, SDLC phase or ethics label, then inspect original action text, expected evidence, roles and linked references. References opens all bibliographic records. Import notes retains source-review warnings and provenance. Copy catalogue link shares a version-specific local URL. In the workspace, Close catalogue returns to your unsent message. The local backend must be running; no AI requests are made. Source links open only when clicked.",
+  },
   diagram: {
     title: "Diagram source",
     text: "Expand to inspect the Mermaid text used to draw this diagram. The diagram is generated content, not a verified representation of your system. Opening the source does not execute project code or modify files.",
   },
   start: {
     title: "How to use EthicSpark",
-    text: "1. Open Model settings. Choose OpenAI, Anthropic Claude or Ollama, select a model and authorise processing for this project.\n2. Describe what you want in the message box. For example: ‘Review this API design and suggest tests.’\n3. Optionally attach documents or link a local project folder.\n4. Send your message, read the answer and ask follow-up questions. Review any proposed file change or command separately.\nNo application profile or catalogue selection is required. Relevant ethical considerations appear alongside general development advice.\nThe desktop app supports live folders, file edits and commands. The browser supports chat, attachments and downloads. Docker must remain running. A configured model is required; a ChatGPT or Claude chat subscription alone does not supply API access.",
+    text: "To browse without AI, choose Explore catalogue. No project, API key or Ollama is needed.\nFor an AI conversation:\n1. Open Model settings. Choose OpenAI, Anthropic Claude or Ollama, select a model and authorise processing for this project.\n2. Describe what you want in the message box. For example: ‘Review this API design and suggest tests.’\n3. Optionally attach documents or link a local project folder.\n4. Send your message, read the answer and ask follow-up questions. Review any proposed file change or command separately.\nNo application profile or catalogue selection is required. Relevant ethical considerations appear alongside general development advice.\nThe desktop app supports live folders, file edits and commands. The browser supports chat, attachments and downloads. Docker must remain running. A configured model is required; a ChatGPT or Claude chat subscription alone does not supply API access.",
   },
   conversation: {
     title: "New conversation",

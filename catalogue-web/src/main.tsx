@@ -1,10 +1,11 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import App from "./App";
 import { HelpProvider } from "./Help";
 import LegacyWorkflow from "./LegacyWorkflow";
 import "./style.css";
+const CatalogueExplorer = lazy(() => import("./CatalogueExplorer"));
 const theme = createTheme({
   palette: {
     primary: { main: "#1967d2" },
@@ -53,7 +54,11 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <HelpProvider>
-        {new URLSearchParams(window.location.search).has("legacy") ? (
+        {new URLSearchParams(window.location.search).has("catalogue") ? (
+          <Suspense fallback={<p>Loading catalogue explorer…</p>}>
+            <CatalogueExplorer />
+          </Suspense>
+        ) : new URLSearchParams(window.location.search).has("legacy") ? (
           <LegacyWorkflow />
         ) : (
           <App />

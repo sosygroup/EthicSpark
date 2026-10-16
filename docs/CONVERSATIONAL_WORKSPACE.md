@@ -1,5 +1,18 @@
 # EthicSpark conversational workspace
 
+## Browse the catalogue without AI
+
+Choose **Explore catalogue** in the sidebar, the book icon in the top bar, or **Explore catalogue without a model** on the welcome screen. The viewer opens over the workspace; **Close catalogue** returns to the current conversation and preserves the unsent message.
+
+For direct access, start the backend with `./scripts/run.sh` and open `http://localhost:8082/?catalogue=1`. This page loads only the read-only catalogue APIs. It does not require a project, model, processing permission, API key or Ollama. Docker and the local backend remain necessary.
+
+- **Clusters & actions:** search source content; optionally filter by action category, SDLC phase or ethics label. Actions marked for all phases remain included when filtering a phase. Select a cluster to read its definition, ethics-label characteristics, scope and source actions, including evidence, roles and source locations.
+- **References:** browse all 184 records or follow a cluster/action’s linked references. Search by ID, title, author or year. Web source links open only when clicked; the desktop app opens them in the system browser.
+- **Import notes:** inspect source-review warnings, normalisation notes and immutable version provenance. Displayed source content is not generated or rewritten by an LLM.
+- **Catalogue version:** choose an imported snapshot. **Copy catalogue link** produces a local URL identifying the version and selected cluster. Recipients need their own running backend with that snapshot; localhost is not a public hosted catalogue.
+
+
+
 The primary interface is now a general software-development conversation. Start with a prompt, attach material, or link a local project folder. The catalogue supplies relevant ethical guidance alongside other engineering considerations. There is no required application profile, phase questionnaire or upfront cluster selection.
 
 ## Start the desktop app

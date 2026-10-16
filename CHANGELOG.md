@@ -1,5 +1,14 @@
 # Development changelog
 
+## 16 October 2026 — Independent catalogue explorer
+
+- Add Explore catalogue to the desktop/browser sidebar, top bar and welcome screen; preserve the conversation and unsent prompt when closing it.
+- Add a standalone `/?catalogue=1` entry using only read-only catalogue APIs, independent of model configuration and project creation.
+- Search and filter clusters/actions by category, SDLC phase and ethics label; inspect original evidence, roles, scope, reference records and import notes.
+- Select immutable imported versions and copy version/cluster links. Source reference links open on explicit clicks; desktop URLs are restricted to HTTP/HTTPS.
+
+Verification: production build and TypeScript checks passed with 15 Java unit tests; all nine native tests passed. Browser checks cover filters, linked references, version switching, responsive layout and preservation of the unsent message. See [validation evidence](docs/VALIDATION.md#independent-catalogue-explorer--16-october-2026).
+
 ## 16 October 2026 — Project management and local-model reliability
 
 ### User-facing changes
