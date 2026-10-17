@@ -174,6 +174,10 @@ export default function App() {
       localStorage.getItem("ethicspark-model") || "",
     ),
     [models, setModels] = useState<string[]>([]);
+  const [manualModel, setManualModel] = useState(false);
+  const [modelsOpen, setModelsOpen] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const modelListAbort = useRef<AbortController | null>(null);
   const [consents, setConsents] = useState<Record<string, boolean>>(() =>
       JSON.parse(localStorage.getItem("ethicspark-consents") || "{}"),
     ),
@@ -831,16 +835,35 @@ export default function App() {
     setBusy(false);
     setActivity("");
   }
+  useEffect(() => {
+    if (!settings) setModelsOpen(false);
+    return () => modelListAbort.current?.abort();
+  }, [provider, settings]);
   async function loadModels() {
+    const controller = new AbortController();
+    modelListAbort.current?.abort();
+    modelListAbort.current = controller;
     setError("");
+    setLoadingModels(true);
     try {
       const ids = await api<string[]>(
         "/api/reasoning/providers/" + provider + "/models",
+        undefined,
+        controller.signal,
       );
+      if (controller.signal.aborted) return;
       setModels(ids);
-      if (!model && ids.length) setModel(ids[0]);
+      setManualModel(false);
+      if (!ids.includes(model)) setModel("");
+      if (ids.length) setModelsOpen(true);
+      else
+        setNotice(
+          "No models were returned. Install an Ollama model or check provider configuration.",
+        );
     } catch (e) {
-      setError((e as Error).message);
+      if (!controller.signal.aborted) setError((e as Error).message);
+    } finally {
+      if (modelListAbort.current === controller) setLoadingModels(false);
     }
   }
   async function openFile(path: string) {
@@ -1180,8 +1203,8 @@ export default function App() {
               <div className="starter-grid">
                 {[
                   [
-                    "Review my project",
-                    "Help me understand this project and identify practical improvements.",
+                    "Try a fictional example",
+                    "Review a fictional customer-support portal that stores customer email addresses and ticket text. Suggest a small architecture, three useful tests, and relevant ethical considerations from the catalogue. Keep the answer concise. Do not request real customer data or propose file edits or commands.",
                   ],
                   [
                     "Think through a design",
@@ -1763,10 +1786,7 @@ export default function App() {
           onClose={() => setCatalogueOpen(false)}
         >
           <Suspense fallback={<p>Loading catalogue explorer…</p>}>
-            <CatalogueExplorer
-              onClose={() => setCatalogueOpen(false)}
-              initialVersion={project?.catalogueVersion}
-            />
+            <CatalogueExplorer onClose={() => setCatalogueOpen(false)} />
           </Suspense>
         </Dialog>
       )}
@@ -1957,12 +1977,14 @@ export default function App() {
             <TextField
               select
               label="Provider"
-              disabled={unloading}
+              disabled={unloading || loadingModels}
               helperText={<Info topic="provider" />}
               value={providers.length ? provider : ""}
               onChange={(e) => {
                 setProvider(e.target.value);
                 setModels([]);
+                setManualModel(false);
+                setModelsOpen(false);
                 setModel("");
               }}
             >
@@ -1973,26 +1995,57 @@ export default function App() {
               ))}
             </TextField>
             <TextField
-              label="Model ID"
-              disabled={unloading}
+              select={!manualModel}
+              label={manualModel ? "Model ID" : "Model"}
+              disabled={unloading || loadingModels}
               helperText={<Info topic="model" />}
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="Choose or enter an available model"
-              inputProps={{ list: "model-options" }}
-            />
-            <datalist id="model-options">
-              {models.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
+              placeholder={manualModel ? "Enter an exact model ID" : undefined}
+              slotProps={{
+                inputLabel: !manualModel ? { shrink: true } : undefined,
+                select: {
+                  displayEmpty: true,
+                  open: modelsOpen && settings,
+                  onOpen: () => setModelsOpen(true),
+                  onClose: () => setModelsOpen(false),
+                },
+              }}
+            >
+              {!manualModel && [
+                <MenuItem key="empty" value="" disabled>
+                  {models.length
+                    ? "Choose a model"
+                    : "Load available models first"}
+                </MenuItem>,
+                ...[
+                  ...(model && !models.includes(model) ? [model] : []),
+                  ...models,
+                ].map((id) => (
+                  <MenuItem key={id} value={id}>
+                    {id}
+                  </MenuItem>
+                )),
+              ]}
+            </TextField>
             <HelpMuiButton
               help="loadModels"
               onClick={loadModels}
-              disabled={!currentProvider?.configured}
+              disabled={
+                !currentProvider?.configured || loadingModels || unloading
+              }
             >
-              Load available models
+              {loadingModels ? "Loading models…" : "Load available models"}
             </HelpMuiButton>
+            <Button
+              disabled={unloading || loadingModels}
+              onClick={() => {
+                setManualModel((v) => !v);
+                setModelsOpen(false);
+              }}
+            >
+              {manualModel ? "Use model list" : "Enter model ID manually"}
+            </Button>
           </div>
           {currentProvider && !currentProvider.configured && (
             <Alert severity="info">

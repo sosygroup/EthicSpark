@@ -1,5 +1,13 @@
 # Development changelog
 
+## 17 October 2026 — Single catalogue, complete model list and clean example
+
+- Remove catalogue version selection and version parameters from new explorer links; retain internal import provenance and historical read APIs.
+- Replace the browser-filtered model datalist with a full dropdown opened by Load available models. Preserve manual entry as an optional alternative and cancel stale model-list requests.
+- Add a fictional example prompt in the welcome screen and repository. Fresh installations contain no author workspace history; existing local data remains in its Docker volume.
+
+Verification: production build and 19 Java unit tests passed. Live checks confirmed both installed Ollama models in the same menu, no catalogue version selector, version-free copied links, and a sample prompt that sends nothing automatically. See [validation](docs/VALIDATION.md#single-catalogue-complete-model-list-and-clean-example--17-october-2026).
+
 ## 16 October 2026 — Model preparation gauge
 
 - Show an animated circular gauge and elapsed-time clock in Model settings during Ollama preparation. No estimated percentage is displayed because the native API does not provide one.

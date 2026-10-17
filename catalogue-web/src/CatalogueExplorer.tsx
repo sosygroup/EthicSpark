@@ -74,12 +74,9 @@ function sourceLinks(raw: string) {
 }
 export default function CatalogueExplorer({
   onClose,
-  initialVersion = "",
 }: {
   onClose?: () => void;
-  initialVersion?: string;
 }) {
-  const standalone = !onClose;
   const query = useMemo(() => new URLSearchParams(window.location.search), []);
   const [versions, setVersions] = useState<Version[]>([]),
     [version, setVersion] = useState(""),
@@ -110,17 +107,8 @@ export default function CatalogueExplorer({
     read<Version[]>("/api/catalogue/versions", controller.signal)
       .then((v) => {
         setVersions(v);
-        const wanted =
-          initialVersion || (standalone ? query.get("version") : "");
-        if (wanted && !v.some((item) => item.id === wanted))
-          setNotice(
-            "The requested version is unavailable. Showing the latest imported catalogue.",
-          );
-        setVersion((old) =>
-          v.some((item) => item.id === old)
-            ? old
-            : v.find((item) => item.id === wanted)?.id || v[0]?.id || "",
-        );
+        // One catalogue is exposed to users; import IDs remain internal provenance.
+        setVersion(v[0]?.id || "");
         if (!v.length) setLoading(false);
       })
       .catch((e) => {
@@ -130,7 +118,7 @@ export default function CatalogueExplorer({
         }
       });
     return () => controller.abort();
-  }, [reload, initialVersion, standalone, query]);
+  }, [reload]);
   useEffect(() => {
     if (!version) return;
     const controller = new AbortController();
@@ -229,7 +217,6 @@ export default function CatalogueExplorer({
   function copyLink() {
     const url = new URL("/", window.location.origin);
     url.searchParams.set("catalogue", "1");
-    url.searchParams.set("version", version);
     if (cluster) url.searchParams.set("cluster", cluster.id);
     void navigator.clipboard
       .writeText(url.href)
@@ -276,28 +263,6 @@ export default function CatalogueExplorer({
         )}
       </header>
       <div className="catalogue-version-bar">
-        {versions.length > 0 && (
-          <TextField
-            select
-            label="Catalogue version"
-            value={version}
-            onChange={(e) => {
-              setVersion(e.target.value);
-              setSelected("");
-              clearFilters();
-            }}
-            size="small"
-          >
-            {versions.map((v) => (
-              <MenuItem key={v.id} value={v.id}>
-                {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
-                  new Date(v.importedAt),
-                )}{" "}
-                · importer {v.importerVersion} · {v.sourceSha256.slice(0, 10)}
-              </MenuItem>
-            ))}
-          </TextField>
-        )}
         {current && (
           <div className="catalogue-counts">
             <strong>{current.clusterCount}</strong> clusters <span>·</span>{" "}
@@ -621,9 +586,9 @@ export default function CatalogueExplorer({
                 changed by this explorer.
               </p>
               <details className="catalogue-source-detail">
-                <summary>Source version and provenance</summary>
+                <summary>Source provenance</summary>
                 <dl>
-                  <dt>Version ID</dt>
+                  <dt>Import ID</dt>
                   <dd>{version}</dd>
                   <dt>Source SHA-256</dt>
                   <dd>{current?.sourceSha256}</dd>

@@ -6,7 +6,7 @@ export const help: Record<string, HelpEntry> = {
   },
   explorer: {
     title: "Explore the source catalogue",
-    text: "Browse the imported catalogue without configuring a model or creating a project. Search clusters and actions, filter by action category, SDLC phase or ethics label, then inspect original action text, expected evidence, roles and linked references. References opens all bibliographic records. Import notes retains source-review warnings and provenance. Copy catalogue link shares a version-specific local URL. In the workspace, Close catalogue returns to your unsent message. The local backend must be running; no AI requests are made. Source links open only when clicked.",
+    text: "Browse the imported catalogue without configuring a model or creating a project. Search clusters and actions, filter by action category, SDLC phase or ethics label, then inspect original action text, expected evidence, roles and linked references. References opens all bibliographic records. Import notes retains source-review warnings and provenance. The app presents one catalogue without a version selector. Copy catalogue link shares a local URL for the selected cluster; import identifiers remain available only as provenance. In the workspace, Close catalogue returns to your unsent message. The local backend must be running; no AI requests are made. Source links open only when clicked.",
   },
   diagram: {
     title: "Diagram source",
@@ -42,7 +42,7 @@ export const help: Record<string, HelpEntry> = {
   },
   model: {
     title: "Model ID",
-    text: "Load the provider's available models, then select or enter an exact model ID. The model must be available to your configured account or Ollama server. Use a vision-capable model for images. Changing this value affects future responses; it does not rewrite earlier messages.",
+    text: "Click Load available models to open the complete model list, then choose a model. The list is not filtered by the currently selected name. Enter model ID manually remains available for an exact custom ID. The model must be available to your configured account or Ollama server. Use a vision-capable model for images. Changing this value affects future responses; it does not rewrite earlier messages.",
   },
   loadModels: {
     title: "Load available models",

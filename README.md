@@ -8,12 +8,20 @@ The catalogue contains **24 clusters, 144 actions and 184 references**, using Kn
 
 You can also **Explore catalogue** without configuring a model. Browse source clusters, actions, ethics labels, phases, roles and all references in the browser or desktop app. The local backend must be running, but no API key or Ollama is required. Open the sidebar’s **Explore catalogue** button or visit [the standalone explorer](http://localhost:8082/?catalogue=1).
 
-## Latest development update — 16 October 2026
+## Latest development update — 17 October 2026
+
+- One catalogue is presented without a version selector. Internal import identifiers remain available for provenance.
+- **Load available models** opens the complete provider model list; the current selection does not filter it. Manual model ID entry remains available.
+- **Try a fictional example** fills a safe sample prompt without sending it. See [the bundled example](examples/fictional-support-portal.md).
+
+A fresh database contains no saved projects or author test conversations. Git does not include local database volumes, attachments, credentials or linked project folders. Updating an existing installation preserves its own database.
+
+## Previous development update — 16 October 2026
 
 - **Model loading feedback:** an animated gauge in Model settings shows preparation activity and elapsed time, without estimating a loading percentage.
 - **Ollama memory controls:** choose 5, 30 or 60 minutes, or a custom duration per model; use **Unload model now** to release it without deleting installed files.
 - **Ollama preparation and diagnostics:** optional automatic model preloading, configurable 30-minute retention and persisted response timing for loading, prompt processing and generation. Inspect **Model settings** and each answer’s **Response timing**. See [the performance guide](docs/CONVERSATIONAL_WORKSPACE.md#ollama-preparation-and-performance-diagnostics).
-- **Explore catalogue** independently of AI: search clusters/actions, filter by category, SDLC phase and ethics label, inspect all references and import notes, and switch imported versions. Available from the workspace or directly at `/?catalogue=1`; no API key, Ollama or project is required.
+- **Explore catalogue** independently of AI: search clusters/actions, filter by category, SDLC phase and ethics label, inspect all references and import notes, from the single source catalogue. Available from the workspace or directly at `/?catalogue=1`; no API key, Ollama or project is required.
 - Project **⋯** menu: Rename project, Open folder in the desktop system file manager, and confirmed Delete project to a restorable Trash. Local project files are not deleted.
 - Browser-mode banner explains native-only features and includes the copyable `./scripts/desktop.sh` command. Contextual explanations remain for complex operations; redundant information icons on familiar buttons have been removed.
 - Local Ollama reliability: compact catalogue context retains all 144 source action texts, evidence, phases and roles; a stable catalogue prefix permits prompt-cache reuse. Configurable local timeout/output/reasoning settings and first-response retry support replace the previous three-minute failure.

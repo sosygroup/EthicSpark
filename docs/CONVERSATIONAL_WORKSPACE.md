@@ -8,10 +8,8 @@ For direct access, start the backend with `./scripts/run.sh` and open `http://lo
 
 - **Clusters & actions:** search source content; optionally filter by action category, SDLC phase or ethics label. Actions marked for all phases remain included when filtering a phase. Select a cluster to read its definition, ethics-label characteristics, scope and source actions, including evidence, roles and source locations.
 - **References:** browse all 184 records or follow a cluster/action’s linked references. Search by ID, title, author or year. Web source links open only when clicked; the desktop app opens them in the system browser.
-- **Import notes:** inspect source-review warnings, normalisation notes and immutable version provenance. Displayed source content is not generated or rewritten by an LLM.
-- **Catalogue version:** choose an imported snapshot. **Copy catalogue link** produces a local URL identifying the version and selected cluster. Recipients need their own running backend with that snapshot; localhost is not a public hosted catalogue.
-
-
+- **Import notes:** inspect source-review warnings, normalisation notes and source provenance. Displayed source content is not generated or rewritten by an LLM.
+- **One catalogue:** there is no version selector. **Copy catalogue link** produces a local URL for the selected cluster. Import identifiers and source hashes remain available under provenance for audit and replication; they are not user choices. Recipients need their own running backend; localhost is not a public hosted catalogue.
 
 The primary interface is now a general software-development conversation. Start with a prompt, attach material, or link a local project folder. The catalogue supplies relevant ethical guidance alongside other engineering considerations. There is no required application profile, phase questionnaire or upfront cluster selection.
 
@@ -137,3 +135,9 @@ After a completed answer, expand **Response timing** to inspect backend context 
 **Unload model now** releases the selected model from the shared Ollama server’s memory without deleting its installation or saved conversations. The button is disabled while this window prepares or awaits a response. Server checks also reject unloading a model with pending assistant messages or an active gateway generation/preparation. Other applications using the same Ollama server are outside these activity checks. After successful manual unloading, automatic preparation pauses for that model in this session until **Prepare model now** or a new message; reopening the app restores automatic preparation if enabled. Another client can load the model again.
 
 The optional assistant message field is `keepAliveMinutes`; preparation accepts `{ "model": "installed-model-id", "keepAliveMinutes": 15 }` at `/api/reasoning/providers/ollama/prepare`. Manual unloading accepts `{ "model": "installed-model-id" }` at `/api/reasoning/providers/ollama/unload`. Unloading returns a conflict while a matching assistant message is pending or the gateway is preparing/generating with that model.
+
+## Model list and clean installations — 17 October 2026
+
+**Load available models** opens a complete, unfiltered dropdown for the selected provider. Choose the model explicitly; loading the list does not automatically select or preload its first entry. Saved available selections are retained. **Enter model ID manually** remains an alternative for exact IDs. Loading a list sends no project context and downloads no model.
+
+A new Docker database has no saved projects. The bundled [fictional example](../examples/fictional-support-portal.md) and welcome button **Try a fictional example** supply a safe starting prompt; selecting it only fills the composer. Model processing requires a separate explicit send and permission. Author test projects are not Git data. Existing Docker volumes are preserved on update. Delete project moves local projects into recoverable Trash and does not delete linked folders.
