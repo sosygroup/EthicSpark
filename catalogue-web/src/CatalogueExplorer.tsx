@@ -1,3 +1,4 @@
+import { reportIssue } from "./notification-store";
 import type { MouseEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -100,6 +101,9 @@ export default function CatalogueExplorer({
   const [referenceSearch, setReferenceSearch] = useState(""),
     [scope, setScope] = useState<{ title: string; ids: string[] } | null>(null);
   const [severity, setSeverity] = useState("WARNING");
+  useEffect(() => {
+    if (error) reportIssue(error, "Catalogue loading");
+  }, [error]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -297,14 +301,9 @@ export default function CatalogueExplorer({
         </Button>
       </nav>
       {error ? (
-        <Alert
-          severity="error"
-          action={
-            <Button onClick={() => setReload((v) => v + 1)}>Retry</Button>
-          }
-        >
-          {error}
-        </Alert>
+        <Button onClick={() => setReload((v) => v + 1)}>
+          Retry catalogue loading · details in Notifications
+        </Button>
       ) : loading ? (
         <div className="catalogue-loading" role="status">
           <CircularProgress size={24} /> Loading source catalogue…

@@ -1,4 +1,10 @@
-# Fictional support portal
+# Offline demonstration and optional live prompt
+
+To explore the complete authored conversation, choose **New project (+) → Load demo project**. Six stages cover Requirements, Design, Implementation, Testing, Deployment and Operations. No API key or Ollama is needed. The demo contains Mermaid diagrams, an illustrative SVG chart and downloadable notes. None of its content is a live model response, expert evaluation, executed test result or release approval.
+
+Load demo project reopens the existing demo, restoring it from Trash if needed. It preserves subsequent conversations rather than replacing them. The source is [`support-portal.json`](../catalogue-service/src/main/resources/demo/support-portal.json).
+
+## Fictional support portal
 
 This small example contains no real customer or project data. It is a prompt to try, not a saved model response or a validated system design.
 

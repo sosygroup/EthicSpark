@@ -13,6 +13,7 @@ public class AssistantController {
     public AssistantController(AssistantService service) {this.service=service;}
     @GetMapping("/projects") public List<Project> projects() {return service.projects();}
     @PostMapping("/projects") public Project create(@RequestBody CreateProject request) {return service.createProject(request);}
+    @PostMapping("/projects/demo") public Thread demo() {return service.loadDemo();}
     @GetMapping("/projects/trash") public List<Project> trash() {return service.trashedProjects();}
     @PostMapping("/projects/{id}/rename") public Project rename(@PathVariable UUID id,@RequestBody CreateProject request) {return service.renameProject(id,request);}
     @PostMapping("/projects/{id}/trash") public Map<String,Boolean> trash(@PathVariable UUID id) {service.trashProject(id);return Map.of("deleted",true);}

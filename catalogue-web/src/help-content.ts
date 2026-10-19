@@ -10,11 +10,11 @@ export const help: Record<string, HelpEntry> = {
   },
   diagram: {
     title: "Diagram source",
-    text: "Expand to inspect the Mermaid text used to draw this diagram. The diagram is generated content, not a verified representation of your system. Opening the source does not execute project code or modify files.",
+    text: "Expand to inspect the Mermaid text used to draw this diagram. Click the image to enlarge it, download the rendered SVG or download the original Mermaid source. A missing space in a graph header is corrected for preview only; other syntax errors are explained in Notifications and preserve the source. The diagram is generated content, not a verified representation of your system. Opening the source does not execute project code or modify files.",
   },
   start: {
     title: "How to use EthicSpark",
-    text: "To browse without AI, choose Explore catalogue. No project, API key or Ollama is needed.\nFor an AI conversation:\n1. Open Model settings. Choose OpenAI, Anthropic Claude or Ollama, select a model and authorise processing for this project.\n2. Describe what you want in the message box. For example: ‘Review this API design and suggest tests.’\n3. Optionally attach documents or link a local project folder.\n4. Send your message, read the answer and ask follow-up questions. Review any proposed file change or command separately.\nNo application profile or catalogue selection is required. Relevant ethical considerations appear alongside general development advice.\nThe desktop app supports live folders, file edits and commands. The browser supports chat, attachments and downloads. Docker must remain running. A configured model is required; a ChatGPT or Claude chat subscription alone does not supply API access.",
+    text: "To browse without AI, choose Explore catalogue. No project, API key or Ollama is needed.\nFor an AI conversation:\n1. Open Model settings. Choose OpenAI, Anthropic Claude or Ollama, select a model and authorise processing for this project.\n2. Describe what you want in the message box. For example: ‘Review this API design and suggest tests.’\n3. Optionally attach documents or link a local project folder.\n4. Send your message, read the answer and ask follow-up questions. Review any proposed file change or command separately.\nOpen the bell in the upper-right corner (or press Alt+N) to read runtime notifications, explanations and suggested actions. A colored dot marks unread items. No application profile or catalogue selection is required. Relevant ethical considerations appear alongside general development advice.\nThe desktop app supports live folders, file edits and commands. The browser supports chat, attachments and downloads. Docker must remain running. A configured model is required; a ChatGPT or Claude chat subscription alone does not supply API access.",
   },
   conversation: {
     title: "New conversation",
@@ -22,7 +22,7 @@ export const help: Record<string, HelpEntry> = {
   },
   projects: {
     title: "Projects",
-    text: "A project groups conversations, attachments, model-processing permission and a catalogue version. Create a named project to keep work organised, or simply send a message to create a workspace automatically. A project can optionally link to a local folder in the desktop app.",
+    text: "A project groups conversations, attachments, model-processing permission and a catalogue version. Create a named project to keep work organised, or simply send a message to create a workspace automatically. A project can optionally link to a local folder in the desktop app. Load demo project opens an offline, authored example with six stages from Requirements to Operations. It makes no model requests and performs no file edits or commands. Repeated use reopens the same demo, restoring it from Trash when needed without overwriting its history.",
   },
   project: {
     title: "Open project",
@@ -94,7 +94,7 @@ export const help: Record<string, HelpEntry> = {
   },
   artifacts: {
     title: "Artifacts",
-    text: "Find documents and source files generated in this conversation. Click an item to download it. A download is separate from an approved edit to your linked project: it does not automatically change project files. You can also export the conversation as Markdown.",
+    text: "Find documents and source files generated in this conversation. Mermaid diagrams, SVG figures and self-contained PNG, JPEG, GIF or WebP images are previewed in the chat; click an image to enlarge it. Raster artifacts must contain a complete base64 image data URL. SVG and Mermaid artifacts contain source text. External image URLs are not fetched automatically. Other artifact formats expose a source preview. Click Download to save an item. A download is separate from an approved edit to your linked project: it does not automatically change project files. You can also export the conversation as Markdown.",
   },
   download: {
     title: "Download generated artifact",

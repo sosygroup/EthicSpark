@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld(
     approveOperation: (ticket) =>
       ipcRenderer.invoke("workspace:approve", ticket),
     stopCommand: (ticket) => ipcRenderer.invoke("workspace:stop", ticket),
+    onApplicationUpdateCheck: (callback) =>
+      listen("application:check-update", callback),
     onWorkspaceChanged: (callback) => listen("workspace:changed", callback),
     onCommandOutput: (callback) => listen("workspace:output", callback),
   }),

@@ -64,6 +64,29 @@ class AssistantWorkflowIT {
         assertThat(encoded).doesNotContain("\"expertObservations\"","\"source\"");
         assertThat(encoded.length()).isLessThan((int)(JSON.writeValueAsString(Map.of("clusters",source.clusters(),"references",source.references())).length()*0.65));
     }
+    @Test void demoIsOfflineIdempotentRestorableAndPreservesLaterConversations() {
+        var demo=service.loadDemo();
+        assertThat(demo.messages()).hasSize(12);
+        assertThat(demo.messages().getFirst().text()).contains("requirements");
+        assertThat(demo.messages().getLast().text()).contains("Operations");
+        assertThat(demo.messages()).allMatch(m->m.status().equals("complete")&&m.attachmentIds().isEmpty());
+        assertThat(demo.messages().stream().filter(m->m.output()!=null).flatMap(m->m.output().operations().stream())).isEmpty();
+        assertThat(demo.messages().stream().filter(m->m.output()!=null).flatMap(m->m.output().artifacts().stream()).map(Artifact::mediaType)).contains("image/svg+xml","text/vnd.mermaid","text/csv");
+        var source=catalogues.catalogue(service.project(demo.projectId()).catalogueVersion()).orElseThrow();
+        var actionIds=source.clusters().stream().flatMap(c->c.actions().stream()).map(a->a.id()).toList();
+        var cited=demo.messages().stream().filter(m->m.output()!=null).flatMap(m->m.output().citations().stream()).flatMap(c->c.actionIds().stream()).toList();
+        assertThat(cited).isNotEmpty().allMatch(actionIds::contains);
+        assertThat(demo.receipts()).isEmpty();
+        assertThat(CALLS.get()).isZero();
+        var extra=service.createThread(new CreateThread(demo.projectId()));
+        assertThat(service.loadDemo().id()).isEqualTo(demo.id());
+        service.trashProject(demo.projectId());
+        assertThat(service.projects()).noneMatch(p->p.id().equals(demo.projectId()));
+        assertThat(service.loadDemo()).isEqualTo(demo);
+        assertThat(service.thread(extra.id()).projectId()).isEqualTo(demo.projectId());
+        assertThat(service.projects().stream().filter(p->p.id().equals(demo.projectId()))).hasSize(1);
+        assertThat(CALLS.get()).isZero();
+    }
     @Test void renamesAProjectWithoutChangingConversationIdentityOrCatalogue() {
         Thread t=conversation();var original=service.project(t.projectId());
         var renamed=service.renameProject(t.projectId(),new CreateProject("  Renamed workspace  "));

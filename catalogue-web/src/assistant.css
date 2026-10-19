@@ -1185,3 +1185,116 @@
     animation: none;
   }
 }
+
+.demo-project-choice {
+  margin-top: 24px;
+  padding: 18px;
+  background: #f1f6f3;
+  border-radius: 12px;
+}
+.demo-project-choice p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.artifact-preview {
+  margin: 16px 0;
+  border: 1px solid #dce3df;
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 0;
+}
+.artifact-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.visual-image-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 12px 0;
+  width: 100%;
+  cursor: zoom-in;
+}
+.visual-image-button img {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+}
+.visual-image-button span {
+  color: #59685f;
+  font-size: 12px;
+}
+.expanded-visual {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: auto;
+}
+.mermaid-render-host {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  width: 1200px;
+  visibility: hidden;
+  pointer-events: none;
+}
+.artifact-preview pre {
+  overflow: auto;
+  max-height: 360px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.diagram-result {
+  max-width: 100%;
+  min-width: 0;
+}
+.diagram-result > small {
+  display: block;
+  margin: 8px 0;
+}
+.demo-stage-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  border-bottom: 1px solid #dce3df;
+  background: #f5f8f6;
+}
+.demo-stage-nav > span {
+  font-size: 12px;
+  color: #59685f;
+  margin-right: 8px;
+}
+.demo-stage-nav button {
+  border: 1px solid #cbd9d0;
+  border-radius: 20px;
+  background: white;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.message {
+  scroll-margin-top: 20px;
+}
+.artifact-preview-heading > button,
+.diagram-result > button {
+  border: 1px solid #ccd8d0;
+  border-radius: 7px;
+  padding: 6px 10px;
+  margin: 8px 0;
+  color: #294e43;
+  font-size: 12px;
+  background: #f7faf8;
+}
+.artifact-preview-heading > button:hover,
+.diagram-result > button:hover {
+  background: #e9f1ec;
+}

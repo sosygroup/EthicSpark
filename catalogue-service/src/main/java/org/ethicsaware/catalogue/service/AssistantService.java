@@ -17,12 +17,16 @@ import org.ethicsaware.catalogue.service.Assistant.Thread;
 /** Conversational orchestration only. The server cannot read host paths or execute commands. */
 @Service
 public class AssistantService {
-    static final String PROMPT_VERSION="workspace-assistant-2";
+    static final String PROMPT_VERSION="workspace-assistant-3";
     static final String SYSTEM="""
         You are EthicSpark, a general software development assistant with an ethics-aware catalogue.
         Help with the user's actual task: requirements, design, code, debugging, tests, documentation and other engineering work.
         Respond in English. Use clear Markdown, fenced code, tables and downloadable text artefacts where useful.
-        Use fenced mermaid code for diagrams. Use appropriate filenames for Markdown, JSON, CSV, source code and other text artefacts.
+        Use fenced mermaid code for diagrams, preserving newlines and writing a valid header such as "flowchart TB" (never "graphTB").
+        Visual artifacts can use text/vnd.mermaid (.mmd) or image/svg+xml (.svg) with complete source; SVG must be self-contained without scripts or external resources.
+        Raster artifacts must contain a complete data:image/png;base64,... (or JPEG, GIF, WebP) URL, not an invented path or placeholder.
+        Only produce raster artifacts when actual encoded image data is supplied; you cannot generate photographs or binary images.
+        Use appropriate filenames for Markdown, JSON, CSV, source code and other text artefacts.
         Do NOT ask the user to complete a profile, select clusters, choose SDLC phases or review all six actions in advance.
         Use relevant ethical concerns from the supplied catalogue when the task warrants them, alongside other useful engineering considerations.
         Do not force ethics commentary into an unrelated question. Ask focused questions only if progress depends on missing information.
@@ -95,6 +99,35 @@ public class AssistantService {
     public List<ThreadSummary> threads() { return db.query("SELECT id,project_id,title,revision,updated_at FROM assistant_thread t WHERE EXISTS (SELECT 1 FROM assistant_project p WHERE p.id=t.project_id AND p.deleted_at IS NULL) ORDER BY updated_at DESC",(rs,n)->new ThreadSummary(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class),rs.getString(3),rs.getInt(4),rs.getTimestamp(5).toInstant())); }
     public Thread createThread(CreateThread request) {
         return tx.execute(status->{lockProject(request.projectId(),false);UUID id=UUID.randomUUID();db.update("INSERT INTO assistant_thread(id,project_id,title) VALUES (?,?,?)",id,request.projectId(),"New conversation");return thread(id);});
+    }
+    public record DemoTurn(String user,String message,List<Artifact> artifacts,List<Citation> citations) {}
+    /** Explicit, offline and repeatable. Never replace a developer's subsequent demo edits. */
+    public Thread loadDemo() {
+        return tx.execute(status->{
+            db.execute("SELECT pg_advisory_xact_lock(194672531)");
+            var saved=db.query("SELECT thread_id FROM assistant_demo WHERE name='support-portal-v1'",(rs,n)->rs.getObject(1,UUID.class));
+            if(!saved.isEmpty()) {
+                UUID id=saved.getFirst();
+                UUID project=db.queryForObject("SELECT project_id FROM assistant_thread WHERE id=?",UUID.class,id);
+                db.update("UPDATE assistant_project SET deleted_at=NULL WHERE id=?",project);
+                return thread(id);
+            }
+            DemoTurn[] turns;
+            try(var input=getClass().getResourceAsStream("/demo/support-portal.json")) {
+                turns=json.readValue(Objects.requireNonNull(input).readAllBytes(),DemoTurn[].class);
+            } catch(java.io.IOException e) {throw new IllegalStateException("Cannot load the bundled demonstration.",e);}
+            var p=createProject(new CreateProject("Demo — fictional support portal"));
+            var t=createThread(new CreateThread(p.id()));
+            db.update("UPDATE assistant_thread SET title=? WHERE id=?","Demo · Requirements to Operations (offline)",t.id());
+            for(var turn:turns) {
+                insert(t.id(),null,new Message(UUID.randomUUID(),"user",turn.user(),"complete","demo","Authored demo · not a live model",Instant.now(),List.of(),List.of(),null,""));
+                var output=new Output(turn.message(),turn.citations(),List.of(),List.of(),turn.artifacts());
+                insert(t.id(),null,new Message(UUID.randomUUID(),"assistant",turn.message(),"complete","demo","Authored demo · not a live model",Instant.now(),List.of(),List.of(),output,""));
+            }
+            bump(t.id());
+            db.update("INSERT INTO assistant_demo(name,thread_id) VALUES ('support-portal-v1',?)",t.id());
+            return thread(t.id());
+        });
     }
     public Thread thread(UUID id) {
         var t=db.query("SELECT id,project_id,title,revision FROM assistant_thread t WHERE id=? AND EXISTS (SELECT 1 FROM assistant_project p WHERE p.id=t.project_id AND p.deleted_at IS NULL)",(rs,n)->new Thread(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class),rs.getString(3),rs.getInt(4),List.of(),List.of()),id).stream().findFirst().orElseThrow(()->fail(HttpStatus.NOT_FOUND,"Conversation not found."));

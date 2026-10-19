@@ -2,13 +2,24 @@
 
 EthicSpark is a standalone conversational workspace for software development, with an ethics-aware catalogue in context. Start from a prompt, documents or a live local project folder. The assistant helps with general engineering tasks and introduces ethical considerations when relevant; no profile questionnaire or upfront cluster choices are required.
 
-Responses support Markdown, code, tables, Mermaid diagrams and downloadable text documents. The desktop app can read current project files, propose changes and run commands/tests **only after the developer reviews and approves each operation**. Conversations and operation results persist in PostgreSQL.
+Responses support Markdown, code, tables, Mermaid diagrams, SVG figures, self-contained raster images and downloadable artifacts. Visuals appear directly in the conversation and can be enlarged or downloaded. The desktop app can read current project files, propose changes and run commands/tests **only after the developer reviews and approves each operation**. Conversations and operation results persist in PostgreSQL.
 
 The catalogue contains **24 clusters, 144 actions and 184 references**, using Know, Protect, Inform, Assess, Validate and Respond. The updated author workbook is included as a separately versioned public dataset, with research observations omitted. See [data provenance](docs/DATA_PROVENANCE.md).
 
 You can also **Explore catalogue** without configuring a model. Browse source clusters, actions, ethics labels, phases, roles and all references in the browser or desktop app. The local backend must be running, but no API key or Ollama is required. Open the sidebar’s **Explore catalogue** button or visit [the standalone explorer](http://localhost:8082/?catalogue=1).
 
-## Latest development update — 17 October 2026
+## Latest development update — 19 October 2026
+
+- The **Notifications** center in the upper-right corner collects runtime warnings, errors and information without opening a banner or interrupting the conversation. Unread indicators use red for errors, amber for warnings and blue for information. Open the bell (or press Alt+N) for explanations, suggested actions and optional technical details. Repeated reports are grouped.
+
+- Updated application files are detected on startup and when returning to the window. An **Application updated** notification offers an explicit **Reload app** action, preserving unsent message text. Missing components caused by an unavailable service have a separate message. No automatic reload interrupts work.
+
+- **New project (+) → Load demo project** opens an offline, authored conversation from Requirements through Design, Implementation, Testing, Deployment and Operations. It includes diagrams, an illustrative chart and downloadable artifacts; no model is needed.
+- Reopening the demo reuses it; if moved to Trash, it is restored without replacing later conversations. Fresh installations remain empty until you explicitly load it.
+- Visual artifacts support Mermaid source, SVG figures and PNG/JPEG/GIF/WebP data URLs. Click a preview to enlarge it, or download the original artifact. Diagrams also offer SVG export.
+- Mermaid input is validated before rendering. Missing spaces in flowchart headers such as `graphTB` are corrected for preview only; other invalid diagrams have a discreet link to an explanation in Notifications, with the original source retained. Temporary rendering elements are always removed.
+
+## Previous development update — 17 October 2026
 
 - One catalogue is presented without a version selector. Internal import identifiers remain available for provenance.
 - **Load available models** opens the complete provider model list; the current selection does not filter it. Manual model ID entry remains available.
@@ -28,6 +39,8 @@ A fresh database contains no saved projects or author test conversations. Git do
 - Real local smoke check with `qwen3.8:27b`: a fictional support-portal request completed in 233.6 seconds with validated catalogue citations. This is compatibility evidence for one example, not an expert evaluation or a latency guarantee.
 
 See the [changelog](CHANGELOG.md), [usage guide](docs/CONVERSATIONAL_WORKSPACE.md) and [validation evidence](docs/VALIDATION.md).
+
+The desktop launcher refreshes interface cache on each fresh process and prints the project path, backend address and loaded UI entry file. Existing projects and model preferences are retained. It follows the Compose application port automatically; an explicit `ETHICSPARK_URL` overrides it.
 
 ## Start the desktop app
 

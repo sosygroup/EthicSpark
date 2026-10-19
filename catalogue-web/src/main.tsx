@@ -2,6 +2,9 @@ import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import App from "./App";
+import NotificationCenter from "./NotificationCenter";
+import { ModuleLoadBoundary } from "./AppUpdateNotice";
+import { installUpdateDetection } from "./app-update";
 import { HelpProvider } from "./Help";
 import LegacyWorkflow from "./LegacyWorkflow";
 import "./style.css";
@@ -49,20 +52,24 @@ const theme = createTheme({
     MuiChip: { styleOverrides: { root: { fontWeight: 500 } } },
   },
 });
+installUpdateDetection();
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <HelpProvider>
-        {new URLSearchParams(window.location.search).has("catalogue") ? (
-          <Suspense fallback={<p>Loading catalogue explorer…</p>}>
-            <CatalogueExplorer />
-          </Suspense>
-        ) : new URLSearchParams(window.location.search).has("legacy") ? (
-          <LegacyWorkflow />
-        ) : (
-          <App />
-        )}
+        <NotificationCenter />
+        <ModuleLoadBoundary>
+          {new URLSearchParams(window.location.search).has("catalogue") ? (
+            <Suspense fallback={<p>Loading catalogue explorer…</p>}>
+              <CatalogueExplorer />
+            </Suspense>
+          ) : new URLSearchParams(window.location.search).has("legacy") ? (
+            <LegacyWorkflow />
+          ) : (
+            <App />
+          )}
+        </ModuleLoadBoundary>
       </HelpProvider>
     </ThemeProvider>
   </React.StrictMode>,

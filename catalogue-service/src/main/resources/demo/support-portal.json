@@ -1,0 +1,157 @@
+[
+  {
+    "user": "Start from requirements for a fictional customer-support portal. Customers submit tickets; support agents reply. What should we agree first?",
+    "message": "## 1 \u00b7 Requirements\n**Offline, authored demonstration.** Every turn and artifact in this conversation is fictional, not a live model response, expert validation, or evidence that code/tests have run. No API key or Ollama model is needed to explore it. You can continue with your own questions after configuring a provider.\n\nStart with a small scope: customers submit and track tickets; agents read assigned tickets and reply. Assume email addresses and free-text ticket content are personal data. Do not assume customers consent to unrelated uses.\n\n| Requirement | Acceptance criterion |\n| --- | --- |\n| Customer isolation | Customer A cannot read Customer B's ticket, including by guessing an ID. |\n| Agent access | Only an assigned agent or an explicitly authorized supervisor can read a ticket. |\n| Data minimization | Require an email address and issue description; warn against including sensitive data. |\n| Retention | Agree a retention period and deletion process with the business before implementation. |\n| Accessible support | Keyboard navigation, clear errors and a non-digital contact route are available. |\n\n**Open decisions:** expected users, retention period, supervisor permissions and whether any third party receives ticket data. The catalogue links below point to source actions relevant to these illustrative decisions. They do not establish that safeguards have been implemented or that the tool has been expert-validated.",
+    "artifacts": [
+      {
+        "name": "requirements.md",
+        "mediaType": "text/markdown",
+        "content": "# Fictional support portal \u2014 requirements\n\nCustomer isolation; assigned-agent access; minimum personal data; agreed retention; accessible support.\n\nOpen decisions: retention duration, supervisor access and external processors.\n\nAuthored demonstration, not an approved specification."
+      }
+    ],
+    "citations": [
+      {
+        "clusterId": "C-01",
+        "actionIds": [
+          "C01-A1"
+        ],
+        "rationale": "Identify data, purposes, access and retention during Requirements."
+      },
+      {
+        "clusterId": "C-09",
+        "actionIds": [
+          "C09-A1"
+        ],
+        "rationale": "Identify people and access conditions that the support workflow could exclude."
+      }
+    ]
+  },
+  {
+    "user": "Assume no third-party sharing and a provisional 90-day retention period after closure. Propose the architecture and data flow.",
+    "message": "## 2 \u00b7 Design\nTreat 90 days as a **provisional product decision**, not a legal requirement. Review exceptions and deletion from backups before adopting it.\n\nSeparate authentication, ticket authorization and data storage. Check ownership or assignment on every read and write. Logs should contain event IDs, not ticket bodies or email addresses.\n\n```mermaid\nflowchart TB\n  Customer[Customer] --> UI[Accessible web interface]\n  Agent[Assigned support agent] --> UI\n  UI --> API[Java API: authorization per ticket]\n  API --> DB[(Ticket database)]\n  API --> Audit[Redacted audit events]\n  Retention[Scheduled retention worker] --> DB\n```\n\nNo external recipient is assumed. A linked local folder would grant read context only; any file edits and commands still require individual review and approval.\n\nDraft a clear notice explaining what ticket data is collected, who can access it and the provisional retention policy; confirm the notice against the actual system before release.",
+    "artifacts": [
+      {
+        "name": "architecture.mmd",
+        "mediaType": "text/vnd.mermaid",
+        "content": "flowchart LR\n  Browser[Web interface] --> API[Java API]\n  API --> DB[(Database)]\n  API --> Audit[Redacted audit events]"
+      }
+    ],
+    "citations": [
+      {
+        "clusterId": "C-01",
+        "actionIds": [
+          "C01-A2",
+          "C01-A3"
+        ],
+        "rationale": "Apply privacy safeguards in Design and explain data practices through understandable controls."
+      }
+    ]
+  },
+  {
+    "user": "Show an implementation sketch for checking access. Do not change any files.",
+    "message": "## 3 \u00b7 Implementation\nHere is a deliberately small Java sketch. Apply the check before loading or returning ticket content, and repeat authorization for updates and downloads. Use authenticated server-side identities, not a user ID submitted in a request.\n\n```java\nboolean canRead(Ticket ticket, Principal actor) {\n    return ticket.customerId().equals(actor.id())\n        || (actor.isAgent() && actor.id().equals(ticket.assignedAgentId()));\n}\n```\n\nThis is **illustrative code**, not a complete security implementation. Supervisor access remains an open requirement. Avoid distinguishing \u201cticket exists but access denied\u201d from \u201cticket absent\u201d in customer-facing responses when that would expose another customer's activity.\n\nThe download is a review checklist. Nothing has been written to a project folder.",
+    "artifacts": [
+      {
+        "name": "implementation-checklist.md",
+        "mediaType": "text/markdown",
+        "content": "# Implementation review\n\n- Authorize every read, update and download.\n- Derive identities from authentication.\n- Keep ticket content out of logs.\n- Define supervisor policy explicitly.\n- Test ownership and assignment changes.\n\nIllustrative; no file changes or commands executed."
+      }
+    ],
+    "citations": [
+      {
+        "clusterId": "C-01",
+        "actionIds": [
+          "C01-A2"
+        ],
+        "rationale": "Implement proportionate access restrictions and minimize data exposure."
+      }
+    ]
+  },
+  {
+    "user": "Plan tests, including privacy and accessibility. Show an example chart but do not claim the tests passed.",
+    "message": "## 4 \u00b7 Testing\nThese are **planned tests**, not execution results. Use synthetic tickets only.\n\n| Test | Expected outcome |\n| --- | --- |\n| Other customer guesses an ID | No ticket content disclosed. |\n| Unassigned agent reads a ticket | Access denied. |\n| Agent reassignment | Old agent loses access. |\n| Retention boundary | Closed ticket is removed according to the agreed policy. |\n| Logging inspection | No email address or ticket text in event logs. |\n| Keyboard-only submission | All controls reachable; focus and errors understandable. |\n\nThe chart groups this illustrative test plan. Its numbers are example counts, **not measured coverage**. Download the SVG to reuse the figure or the CSV to edit its data.",
+    "artifacts": [
+      {
+        "name": "planned-tests.svg",
+        "mediaType": "image/svg+xml",
+        "content": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"310\" viewBox=\"0 0 640 310\"><rect width=\"640\" height=\"310\" fill=\"#f7faf9\"/><g font-family=\"Arial\" fill=\"#243b35\"><text x=\"24\" y=\"32\" font-size=\"19\">Illustrative planned tests \u2014 not execution results</text><text x=\"24\" y=\"87\">Authorization</text><text x=\"24\" y=\"147\">Privacy</text><text x=\"24\" y=\"207\">Accessibility</text><text x=\"24\" y=\"280\" font-size=\"13\">Example counts only. No tests have been run.</text></g><g fill=\"#356f61\"><rect x=\"180\" y=\"60\" width=\"300\" height=\"36\" rx=\"5\"/><rect x=\"180\" y=\"120\" width=\"200\" height=\"36\" rx=\"5\"/><rect x=\"180\" y=\"180\" width=\"100\" height=\"36\" rx=\"5\"/></g><g fill=\"#243b35\" font-family=\"Arial\" font-size=\"16\"><text x=\"492\" y=\"84\">3</text><text x=\"392\" y=\"144\">2</text><text x=\"292\" y=\"204\">1</text></g></svg>"
+      },
+      {
+        "name": "planned-tests.csv",
+        "mediaType": "text/csv",
+        "content": "Category,Planned tests\nAuthorization,3\nPrivacy,2\nAccessibility,1\n"
+      }
+    ],
+    "citations": [
+      {
+        "clusterId": "C-01",
+        "actionIds": [
+          "C01-A5"
+        ],
+        "rationale": "Plan checks of actual privacy control behavior."
+      },
+      {
+        "clusterId": "C-09",
+        "actionIds": [
+          "C09-A5"
+        ],
+        "rationale": "Validate priority journeys for accessibility and document remaining barriers."
+      }
+    ]
+  },
+  {
+    "user": "What must we review before release?",
+    "message": "## 5 \u00b7 Deployment\nUse a release checklist with explicit owners. Do not treat this conversation as release approval.\n\n- **Security:** review authorization paths, dependency findings, secrets management and encrypted transport.\n- **Privacy:** confirm the 90-day assumption, deletion behavior, access logs and the no-sharing statement against the actual deployment.\n- **Accessibility:** run automated checks and manual keyboard/screen-reader review; record unresolved barriers.\n- **Operations:** rehearse backup restoration, retention jobs and incident escalation with synthetic data.\n- **Accountability:** record who accepted each remaining risk and when it will be revisited.\n\nA generated checklist is an artifact, not proof that a safeguard is implemented. In a real project, attach evidence and use relevant catalogue actions to guide the review.",
+    "artifacts": [
+      {
+        "name": "release-review.md",
+        "mediaType": "text/markdown",
+        "content": "# Release review \u2014 fictional example\n\n| Area | Owner | Evidence | Status |\n| --- | --- | --- | --- |\n| Authorization | TBD | Required | Not reviewed |\n| Retention | TBD | Required | Not reviewed |\n| Accessibility | TBD | Required | Not reviewed |\n| Incident response | TBD | Required | Not reviewed |\n\nNo release approval is implied."
+      }
+    ],
+    "citations": [
+      {
+        "clusterId": "C-01",
+        "actionIds": [
+          "C01-A4",
+          "C01-A5"
+        ],
+        "rationale": "Assess privacy risks before release and check claims against actual data practices."
+      },
+      {
+        "clusterId": "C-22",
+        "actionIds": [
+          "C22-A4"
+        ],
+        "rationale": "Review accountability gaps and identify decision owners before release."
+      }
+    ]
+  },
+  {
+    "user": "Continue into Operations. A user reports that old tickets still appear after deletion. How should we respond?",
+    "message": "## 6 \u00b7 Operations\nFirst acknowledge the report without asking the user to paste ticket contents. Record a minimal incident reference and ask an authorized operator to investigate access-controlled logs.\n\n```mermaid\nsequenceDiagram\n  participant User\n  participant Support\n  participant Operator\n  User->>Support: Report deletion concern (no ticket content)\n  Support->>Operator: Escalate with minimal incident reference\n  Operator->>Operator: Check retention job, caches and backup policy\n  Operator-->>Support: Verified findings and remediation plan\n  Support-->>User: Explain outcome and next steps\n```\n\nCheck whether the records are still accessible, merely cached, or subject to an agreed exception. Contain any unintended access, correct the root cause, add a regression test and explain the verified outcome. Escalate potential privacy incidents through the company's approved process.\n\n**Next real step:** create or link your own project, configure a model and ask a focused question. The demo made no model requests, executed no commands and changed no local files.",
+    "artifacts": [
+      {
+        "name": "operations-runbook.md",
+        "mediaType": "text/markdown",
+        "content": "# Deletion concern \u2014 illustrative runbook\n\n1. Record a minimal incident reference.\n2. Restrict investigation to authorized personnel.\n3. Check retention jobs, caches and backup policy.\n4. Contain unintended access and verify remediation.\n5. Add a regression test and communicate verified findings.\n\nDo not copy personal ticket data into the assistant."
+      }
+    ],
+    "citations": [
+      {
+        "clusterId": "C-01",
+        "actionIds": [
+          "C01-A6"
+        ],
+        "rationale": "Contain, investigate and remediate a potential privacy incident during Operations."
+      },
+      {
+        "clusterId": "C-22",
+        "actionIds": [
+          "C22-A6"
+        ],
+        "rationale": "Assign investigation, correction and escalation responsibilities."
+      }
+    ]
+  }
+]

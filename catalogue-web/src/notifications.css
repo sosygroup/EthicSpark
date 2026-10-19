@@ -1,0 +1,104 @@
+.notification-toggle.MuiIconButton-root {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 1500;
+  width: 40px;
+  height: 40px;
+  color: #466053;
+  background: #fff;
+  border: 1px solid #d9e2dc;
+}
+.notification-toggle.MuiIconButton-root:hover {
+  background: #eef4f0;
+}
+.assistant-topbar {
+  padding-right: 70px !important;
+}
+.catalogue-heading {
+  padding-right: 64px;
+}
+.notifications-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.notifications-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 4px;
+}
+.notifications-intro {
+  color: #606963;
+  font:
+    13px/1.6 Arial,
+    sans-serif;
+  margin: 10px 20px 20px;
+}
+.notifications-list {
+  flex: 1;
+  overflow: auto;
+  padding: 0 16px;
+}
+.notification-card {
+  border: 1px solid #dce3df;
+  border-left: 3px solid #748b99;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  padding: 16px;
+  font:
+    14px/1.55 Arial,
+    sans-serif;
+}
+.notification-card.error {
+  border-left-color: #bd3838;
+}
+.notification-card.warning {
+  border-left-color: #bf7b0d;
+}
+.notification-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: #616a65;
+  text-transform: capitalize;
+}
+.notification-card h3 {
+  font-size: 15px;
+  margin: 10px 0;
+}
+.notification-card p {
+  margin: 10px 0;
+}
+.notification-card small {
+  display: block;
+  color: #68736c;
+  margin: 10px 0;
+}
+.notification-card details {
+  margin-top: 12px;
+  color: #4d5a52;
+}
+.notification-card pre {
+  max-height: 200px;
+  white-space: pre-wrap;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.notifications-footer {
+  padding: 12px;
+  border-top: 1px solid #e1e5e2;
+}
+.notifications-empty {
+  padding: 20px;
+  color: #657168;
+}
+.notification-reference {
+  font-size: 12px;
+  color: #586b60;
+}

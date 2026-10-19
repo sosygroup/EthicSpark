@@ -1,4 +1,4 @@
-name: Catalogue foundation
+name: Build and validate EthicSpark
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read

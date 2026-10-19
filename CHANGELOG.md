@@ -1,5 +1,35 @@
 # Development changelog
 
+## 19 October 2026 — Discreet notification center
+
+- Add an upper-right bell and severity-colored unread dot. Runtime feedback is opened on demand in a side panel, with plain-language cause explanations, suggested actions and expandable technical details.
+- Route workspace errors, failed responses/preparation, diagram/image previews, catalogue loading and app-update feedback to the shared center. Preserve source downloads, retry controls and explicit operation-permission explanations.
+- Group repeat occurrences, rearm unread status after acknowledgement and limit the per-window, non-persistent list to 50 items. Include keyboard access with Alt+N.
+- Verification: seven frontend tests, TypeScript/Vite and 19 Java unit tests passed. Isolated browser checks covered missing modules, repeat warnings, syntax-invalid Mermaid without error drawings, validation failures and a synthetic connection error with a red indicator.
+
+## 19 October 2026 — Fresh desktop startup and connection diagnostics
+
+- Refresh only the Electron HTTP cache before first navigation and request entry-document revalidation. Preserve browser preferences, linked folders and saved work.
+- Resolve the default desktop address from the actual Compose port; log the launcher checkout, selected view and loaded entry asset. Explicit ETHICSPARK_URL remains supported.
+- On a second launch, ask the running renderer to check for application updates. A secondary instance now exits without creating another native window.
+- Add two native startup regression tests; the complete 11-test native suite passed.
+
+## 19 October 2026 — Application update notice and visible demo recovery
+
+- Detect changed entry modules on startup/focus/visibility and catch missing lazy modules. Offer an explicit Reload app action; do not mislabel module fetch failures as Mermaid syntax errors.
+- Preserve unsent prompt text on explicit reload, block interruption of active responses/commands and contain lazy catalogue failures inside their dialog.
+- Prevent entry-document caching and place Load demo project at the top of Create a project, opened by the + beside Projects.
+- Verification: 38 Java tests and four frontend tests passed. An isolated browser fixture confirmed missing-module feedback, real entry-module change detection and draft preservation after Reload app. Live checks confirmed demo restoration from Trash.
+
+## 19 October 2026 — Reloadable lifecycle demo and visual chat artifacts
+
+- Add an explicit offline demo loader in Create a project, backed by a transactional, idempotent endpoint and Flyway V6. The authored six-stage conversation is bundled in the repository; no projects are seeded automatically. Restore the same demo after deletion without overwriting saved work.
+- Preview and enlarge Mermaid, SVG and self-contained PNG/JPEG/GIF/WebP artifacts in chat while keeping downloads. Decode raster downloads as actual image bytes. SVG code fences also have a preview.
+- Validate Mermaid before rendering, repair missing header spaces conservatively, serialize parser/render work and remove temporary DOM even on failure. Preserve original source and expose SVG/source downloads.
+- Add frontend regression tests and a PostgreSQL integration test for offline creation, repeated loading, Trash restoration and preserved follow-up conversations.
+
+Verification: 38 Java tests, three frontend regression tests and the production build passed. Live browser checks covered phase navigation, Trash restoration, visual enlargement, actual PNG download and malformed Mermaid without residual error drawings. See [validation](docs/VALIDATION.md#reloadable-lifecycle-demo-and-visual-artifacts--19-october-2026).
+
 ## 17 October 2026 — Single catalogue, complete model list and clean example
 
 - Remove catalogue version selection and version parameters from new explorer links; retain internal import provenance and historical read APIs.

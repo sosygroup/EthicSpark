@@ -37,6 +37,20 @@ Browser-only use is available after `./scripts/run.sh` at http://localhost:8082.
 
 Examples: “Help me understand this repository”, “Investigate why these tests fail”, “Design an API for this feature”, or “Review the privacy implications of this workflow”. The assistant may ask a focused question when needed, but it should progress with the context already available.
 
+## Offline lifecycle demonstration
+
+Choose **+** beside Projects, then **Load demo project**. No provider configuration or processing consent is needed to load it. The bundled fictional support portal contains six question/answer pairs, from Requirements to Operations, with an architecture diagram, implementation sketch, planned-test chart and release/incident checklists. Everything is labelled as an authored demonstration: no inference, file operations or tests are performed.
+
+The endpoint `POST /api/assistant/projects/demo` (empty body) creates the example once and returns its conversation. Repeating it reopens the same project and thread. If the project is in Trash it is restored, retaining any additional conversations and edits. Renaming the project does not change its demo identity. A fresh database still starts without projects: startup never loads the demo. To ask a live follow-up, configure a provider and explicitly authorise processing as for any other project.
+
+## Visual artifacts in conversation
+
+The assistant can return `text/vnd.mermaid` artifacts (`.mmd`/`.mermaid`), textual `image/svg+xml` artifacts, and self-contained PNG, JPEG, GIF or WebP images. Raster artifact content must be a complete `data:image/...;base64,...` URL; there is no binary image-generation service. Encoded content shares the existing 200,000-character artifact limit. Other formats remain downloadable with a text-source preview; arbitrary HTML is not executed.
+
+Mermaid Markdown fences, SVG code fences and visual artifacts render in chat. Click an image to enlarge it in a dialog. Download saves the source/original image; Mermaid also offers a rendered SVG. SVGs are loaded in image context rather than inserted into the application DOM. Remote image URLs are not fetched automatically; refer to self-contained artifacts instead. Invalid image data produces a notice while the original remains downloadable.
+
+Mermaid source is parsed before rendering. The known `graphTB`/`flowchartLR` missing-space pattern is corrected only at the start of the source; other syntax errors are not guessed away. A notice discloses a correction and source downloads retain the exact original. An incomplete diagram still fails gracefully. Parse/layout failures are explained in Notifications, the diagram card retains a discreet link and temporary rendering DOM is removed, including under repeated remounts. See the [Mermaid API documentation](https://mermaid.js.org/config/usage.html#syntax-validation-without-rendering).
+
 ## Folder access and freshness
 
 The desktop app records the linked folder path locally in its Electron user-data directory. It does not copy the folder into PostgreSQL or Git. An OS watcher refreshes the file index; selected/read file contents are reread immediately before each model turn. If watching is unavailable, sending a message still rereads current context. The UI marks external changes and shows which files are included.
@@ -141,3 +155,29 @@ The optional assistant message field is `keepAliveMinutes`; preparation accepts 
 **Load available models** opens a complete, unfiltered dropdown for the selected provider. Choose the model explicitly; loading the list does not automatically select or preload its first entry. Saved available selections are retained. **Enter model ID manually** remains an alternative for exact IDs. Loading a list sends no project context and downloads no model.
 
 A new Docker database has no saved projects. The bundled [fictional example](../examples/fictional-support-portal.md) and welcome button **Try a fictional example** supply a safe starting prompt; selecting it only fills the composer. Model processing requires a separate explicit send and permission. Author test projects are not Git data. Existing Docker volumes are preserved on update. Delete project moves local projects into recoverable Trash and does not delete linked folders.
+
+## Updating an open browser or desktop window
+
+After the first installation of update detection, refresh an already-open window once (or restart the desktop app). Future entry-document changes are checked at startup and when the window regains focus or becomes visible. A detected deployment adds **Application updated** to the upper-right Notifications center, with **Reload app**. The app never reloads itself automatically.
+
+A missing JavaScript/CSS component adds an application-file warning to Notifications rather than a Mermaid syntax message in the conversation. If the current entry document confirms a newer build, it becomes the update notice; if the service is temporarily unreachable or the current build is unchanged, the warning asks you to check the local service and reload. There is no automatic retry/reload loop. The entry document is served with `Cache-Control: no-store`.
+
+**Reload app** keeps saved conversations in the database and temporarily saves the unsent message text in this window's session storage. It refuses to interrupt an active response or native command. Pending attachment selection is not restored by this text-draft mechanism; already uploaded files remain stored with their project. A catalogue component failure is contained inside its dialog so the workspace and draft stay mounted. This mechanism cannot repair a window still running code from before update detection was introduced: refresh that window once manually.
+
+### Desktop interface differs from the browser
+
+Use `./scripts/desktop.sh` from this checkout. The launcher prints its project directory and uses the application port actually published by Compose, including a customized APP_PORT. An explicit ETHICSPARK_URL overrides that address; the desktop log identifies whether it opens the workspace, the legacy workflow or the catalogue explorer. Do not set `?legacy=1` when expecting the conversational workspace.
+
+On a fresh desktop process, only the HTTP interface cache is cleared before navigation. Local storage, provider/model preferences, linked-folder configuration and database conversations are preserved. The terminal reports the loaded entry asset and its HTTP status, allowing comparison with the browser entry document. Relaunching while an instance is already running focuses that window and requests the existing update check; it does not silently reload unsent work. A process running older native code still needs a complete quit and restart once.
+
+## Notifications without interrupting the conversation
+
+Open the bell in the upper-right corner, or press **Alt+N**, to read runtime warnings, errors and information. An unread dot is red when an unread error exists, amber for warnings and blue for information. Nothing opens automatically. Reading the panel acknowledges the current items; another occurrence makes the grouped report unread again. Clear read notifications removes acknowledged items from this window's list. History is limited to 50 grouped items, is not sent to a model and is not persisted across reloads.
+
+Each item explains what happened, possible causes and a concrete next step. Technical details are optional and expandable. Missing interface modules are distinguished from Mermaid syntax failures, model-service requests, connection failures and input validation. Explanations do not automatically blame an external service or claim that EthicSpark cannot be responsible when the cause is unknown. A diagram or image with no preview retains a small link to Notifications and its source/download controls. Saved failed model responses retain their retry control with details in Notifications.
+
+Workspace action errors, model preparation failures, source-catalogue loading failures and application-update notices use this center. Relevant field validation, catalogue-source import notes and the explicit permission explanations in native operation review remain in their own context; they are not hidden. The update notification's Reload app action keeps the existing draft-preservation and active-work checks.
+
+![Notification center with explanatory guidance](screenshots/notification-center.png)
+
+Illustrative notification panel from synthetic connection and module-loading failures; this is not model output or empirical evaluation evidence.

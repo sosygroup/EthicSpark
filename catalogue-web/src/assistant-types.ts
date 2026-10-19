@@ -117,6 +117,7 @@ export type Preview = {
   reason: string;
 };
 export interface Desktop {
+  onApplicationUpdateCheck?: (callback: () => void) => () => void;
   linkFolder: (project: string) => Promise<Workspace | null>;
   openExternalLink?: (url: string) => Promise<void>;
   openFolder: (project: string) => Promise<null>;

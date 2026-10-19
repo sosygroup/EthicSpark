@@ -1,5 +1,6 @@
 import {
   useEffect,
+  memo,
   useCallback,
   useRef,
   useState,
@@ -17,7 +18,6 @@ import {
   MenuItem,
   Menu,
   Button,
-  Snackbar,
   TextField,
 } from "@mui/material";
 import Markdown from "react-markdown";
@@ -40,7 +40,12 @@ import type {
 } from "./assistant-types";
 import "./assistant.css";
 import Diagram from "./Diagram";
+import ArtifactView from "./ArtifactView";
+import { downloadArtifact as download } from "./visual-utils";
 import ModelLoadingGauge from "./ModelLoadingGauge";
+import { ModuleLoadBoundary } from "./AppUpdateNotice";
+import { explainIssue, reportIssue, reportNotice } from "./notification-store";
+import { openNotifications } from "./NotificationCenter";
 import { Info, HelpButton, HelpMuiButton } from "./Help";
 
 const CatalogueExplorer = lazy(() => import("./CatalogueExplorer"));
@@ -103,17 +108,13 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
     </svg>
   );
 }
-function download(artifact: Artifact) {
-  const url = URL.createObjectURL(
-    new Blob([artifact.content], { type: artifact.mediaType || "text/plain" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = artifact.name;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-function RichText({ text }: { text: string }) {
+const RichText = memo(function RichText({
+  text,
+  artifacts = [],
+}: {
+  text: string;
+  artifacts?: Artifact[];
+}) {
   return (
     <div className="chat-markdown">
       <Markdown
@@ -124,21 +125,45 @@ function RichText({ text }: { text: string }) {
               {children}
             </a>
           ),
-          pre: ({ children }) =>
-            isValidElement(children) &&
-            (children as ReactElement<{ className?: string }>).props
-              .className === "language-mermaid" ? (
-              <Diagram
-                code={String(
-                  (children as ReactElement<{ children?: unknown }>).props
-                    .children || "",
-                )}
-              />
+          img: ({ src, alt }) => {
+            const artifact = artifacts.find(
+              (a) => a.name === src || "attachment:" + a.name === src,
+            );
+            return artifact ? (
+              <span>{artifact.name} — preview below</span>
             ) : (
+              <span>
+                {alt || "Image"} (use a self-contained image artifact to preview
+                here)
+              </span>
+            );
+          },
+          pre: ({ children }) => {
+            const child = isValidElement(children)
+              ? (children as ReactElement<{
+                  className?: string;
+                  children?: unknown;
+                }>)
+              : null;
+            const code = String(child?.props.children || "");
+            if (child?.props.className === "language-mermaid")
+              return <Diagram code={code} />;
+            if (child?.props.className === "language-svg")
+              return (
+                <ArtifactView
+                  artifact={{
+                    name: "figure.svg",
+                    mediaType: "image/svg+xml",
+                    content: code,
+                  }}
+                />
+              );
+            return (
               <div className="code-block">
                 <pre>{children}</pre>
               </div>
-            ),
+            );
+          },
           code: ({ children, className }) => (
             <code className={className}>{children}</code>
           ),
@@ -148,7 +173,7 @@ function RichText({ text }: { text: string }) {
       </Markdown>
     </div>
   );
-}
+});
 export default function App() {
   const [projects, setProjects] = useState<Project[]>([]),
     [threads, setThreads] = useState<Summary[]>([]),
@@ -156,7 +181,9 @@ export default function App() {
     [projectId, setProjectId] = useState(
       localStorage.getItem("ethicspark-project") || "",
     );
-  const [prompt, setPrompt] = useState(""),
+  const [prompt, setPrompt] = useState(
+      () => sessionStorage.getItem("ethicspark-reload-prompt") || "",
+    ),
     [busy, setBusy] = useState(false),
     [activity, setActivity] = useState(""),
     [error, setError] = useState(""),
@@ -457,8 +484,15 @@ export default function App() {
   }, [paths, projectId]);
   useEffect(() => {
     if (thread) localStorage.setItem("ethicspark-thread", thread.id);
-    end.current?.scrollIntoView({ behavior: "smooth" });
-  }, [thread?.messages.length, thread?.messages.at(-1)?.status]);
+    if (
+      thread?.messages.length === 12 &&
+      thread.messages[0]?.provider === "demo"
+    ) {
+      document
+        .getElementById("message-" + thread.messages[0].id)
+        ?.scrollIntoView({ behavior: "instant", block: "start" });
+    } else end.current?.scrollIntoView({ behavior: "smooth" });
+  }, [thread?.id, thread?.messages.length, thread?.messages.at(-1)?.status]);
   useEffect(
     () =>
       native?.onWorkspaceChanged((event) => {
@@ -488,6 +522,74 @@ export default function App() {
     setProjectId(p.id);
     await refresh();
     return p.id;
+  }
+  useEffect(() => {
+    sessionStorage.removeItem("ethicspark-reload-prompt");
+  }, []);
+  useEffect(() => {
+    const prepareReload = (event: Event) => {
+      if (busy || executing) {
+        event.preventDefault();
+        return;
+      }
+      sessionStorage.setItem("ethicspark-reload-prompt", prompt);
+    };
+    window.addEventListener("ethicspark:before-reload", prepareReload);
+    return () =>
+      window.removeEventListener("ethicspark:before-reload", prepareReload);
+  }, [prompt, busy, executing]);
+  const reportedMessageErrors = useRef(new Set<string>());
+  useEffect(() => {
+    if (error) reportIssue(error, "Workspace");
+  }, [error]);
+  useEffect(() => {
+    if (notice) {
+      reportIssue(notice, "Workspace", "info");
+      setNotice("");
+    }
+  }, [notice]);
+  useEffect(() => {
+    for (const message of thread?.messages || [])
+      if (
+        message.status === "error" &&
+        !reportedMessageErrors.current.has(message.id)
+      ) {
+        reportedMessageErrors.current.add(message.id);
+        const issue = {
+          ...explainIssue(message.text, message.provider || "Model"),
+          key: "response:" + message.id,
+        };
+        reportNotice(issue);
+      }
+  }, [thread]);
+  useEffect(() => {
+    if (warmup?.status === "error")
+      reportIssue(
+        warmup.error || "Model preparation failed",
+        "Ollama preparation",
+        "warning",
+      );
+  }, [warmup]);
+  const [loadingDemo, setLoadingDemo] = useState(false);
+  async function loadDemo() {
+    setLoadingDemo(true);
+    setError("");
+    try {
+      const t = await api<Thread>("/api/assistant/projects/demo", {});
+      setProjectId(t.projectId);
+      setThread(t);
+      setAttached([]);
+      setPrompt("");
+      setNewProject(false);
+      await refresh();
+      setNotice(
+        "Offline demo opened. Its six stages are authored examples, not live model responses.",
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingDemo(false);
+    }
   }
   async function createProject(link = false) {
     setError("");
@@ -1172,12 +1274,30 @@ export default function App() {
           )}
           <Info topic="start" />
         </div>
-        {error && (
-          <div className="workspace-error">
-            <Alert severity="error" onClose={() => setError("")}>
-              {error}
-            </Alert>
-          </div>
+        {thread?.messages[0]?.provider === "demo" && (
+          <nav className="demo-stage-nav" aria-label="Demo development stages">
+            <span>Offline demo</span>
+            {[
+              "Requirements",
+              "Design",
+              "Implementation",
+              "Testing",
+              "Deployment",
+              "Operations",
+            ].map((stage, index) => (
+              <button
+                type="button"
+                key={stage}
+                onClick={() =>
+                  document
+                    .getElementById("message-" + thread.messages[index * 2]?.id)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              >
+                {index + 1}. {stage}
+              </button>
+            ))}
+          </nav>
         )}
         <div className="conversation-scroll">
           {!visibleMessages.length ? (
@@ -1249,7 +1369,11 @@ export default function App() {
           ) : (
             <div className="messages">
               {visibleMessages.map((m) => (
-                <article key={m.id} className={"message message-" + m.role}>
+                <article
+                  key={m.id}
+                  id={"message-" + m.id}
+                  className={"message message-" + m.role}
+                >
                   {m.role === "user" ? (
                     <>
                       <div className="user-bubble">{m.text}</div>
@@ -1283,7 +1407,9 @@ export default function App() {
                         ) : m.status === "error" ? (
                           <div className="response-error">
                             <strong>Response unavailable</strong>
-                            <p>{m.text}</p>
+                            <Button onClick={openNotifications}>
+                              Details in Notifications
+                            </Button>
                             <HelpButton
                               help="retry"
                               onClick={() => void send(true)}
@@ -1292,7 +1418,10 @@ export default function App() {
                             </HelpButton>
                           </div>
                         ) : (
-                          <RichText text={m.text} />
+                          <RichText
+                            text={m.text}
+                            artifacts={m.output?.artifacts}
+                          />
                         )}
                         {m.output?.citations.length ? (
                           <div className="catalogue-citations">
@@ -1386,21 +1515,7 @@ export default function App() {
                           );
                         })}
                         {m.output?.artifacts.map((a, i) => (
-                          <HelpButton
-                            help="download"
-                            className="artifact-card"
-                            key={i}
-                            onClick={() => download(a)}
-                          >
-                            <span className="artifact-icon">
-                              <Icon name="files" />
-                            </span>
-                            <span>
-                              <strong>{a.name}</strong>
-                              <small>Generated document · Download</small>
-                            </span>
-                            <Icon name="download" />
-                          </HelpButton>
+                          <ArtifactView key={i} artifact={a} />
                         ))}
                         {m.status === "complete" && m.metrics && (
                           <details className="response-timing">
@@ -1785,9 +1900,22 @@ export default function App() {
           aria-labelledby="catalogue-explorer-title"
           onClose={() => setCatalogueOpen(false)}
         >
-          <Suspense fallback={<p>Loading catalogue explorer…</p>}>
-            <CatalogueExplorer onClose={() => setCatalogueOpen(false)} />
-          </Suspense>
+          <ModuleLoadBoundary
+            fallback={
+              <div style={{ padding: 24 }}>
+                <Button onClick={openNotifications}>
+                  Catalogue view unavailable · open Notifications
+                </Button>
+                <Button onClick={() => setCatalogueOpen(false)}>
+                  Close catalogue
+                </Button>
+              </div>
+            }
+          >
+            <Suspense fallback={<p>Loading catalogue explorer…</p>}>
+              <CatalogueExplorer onClose={() => setCatalogueOpen(false)} />
+            </Suspense>
+          </ModuleLoadBoundary>
         </Dialog>
       )}
       <Menu
@@ -1861,7 +1989,6 @@ export default function App() {
               : "Delete project?"}
           </DialogTitle>
           <DialogContent>
-            {error && <Alert severity="error">{error}</Alert>}
             {projectDialog?.kind === "rename" ? (
               <TextField
                 autoFocus
@@ -1929,7 +2056,6 @@ export default function App() {
       >
         <DialogTitle>Trash</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error">{error}</Alert>}
           <p>
             Deleted projects are kept here with their conversations and saved
             material. Restoring a project does not reconnect its local folder
@@ -2178,14 +2304,13 @@ export default function App() {
                     startedAt={warmup.startedAt}
                     model={warmup.model}
                   />
+                ) : warmup.status === "error" ? (
+                  <Button onClick={openNotifications}>
+                    Preparation unavailable · open Notifications
+                  </Button>
                 ) : (
-                  <Alert
-                    severity={warmup.status === "error" ? "warning" : "success"}
-                    role="status"
-                  >
-                    {warmup.status === "error"
-                      ? warmup.error
-                      : `Model preparation completed in ${warmup.data!.requestSeconds.toFixed(1)} s. Ollama will be asked to retain it for ${warmup.data!.keepAliveMinutes} minutes after each use. Other clients and memory pressure can affect availability.`}
+                  <Alert severity="success" role="status">
+                    {`Model preparation completed in ${warmup.data!.requestSeconds.toFixed(1)} s. Ollama will be asked to retain it for ${warmup.data!.keepAliveMinutes} minutes after each use. Other clients and memory pressure can affect availability.`}
                   </Alert>
                 ))}
             </>
@@ -2233,7 +2358,9 @@ export default function App() {
       </Dialog>
       <Dialog
         open={newProject}
-        onClose={() => setNewProject(false)}
+        onClose={() => {
+          if (!loadingDemo) setNewProject(false);
+        }}
         fullWidth
         maxWidth="xs"
       >
@@ -2243,6 +2370,22 @@ export default function App() {
           </span>
         </DialogTitle>
         <DialogContent>
+          <div className="demo-project-choice">
+            <strong>Load or restore the demo project</strong>
+            <p>
+              Follow a fictional support portal from Requirements to Operations,
+              with diagrams and downloadable artifacts. No model or API key
+              needed. If deleted, the demo is restored; existing conversations
+              are kept.
+            </p>
+            <Button
+              disabled={loadingDemo || busy || !!executing}
+              startIcon={<Icon name="restore" />}
+              onClick={() => void loadDemo()}
+            >
+              {loadingDemo ? "Opening demo…" : "Load demo project"}
+            </Button>
+          </div>
           <p>
             Give your conversations a home. You can link a folder now or later.
           </p>
@@ -2257,11 +2400,16 @@ export default function App() {
           />
         </DialogContent>
         <DialogActions>
-          <HelpMuiButton help="cancel" onClick={() => setNewProject(false)}>
+          <HelpMuiButton
+            help="cancel"
+            disabled={loadingDemo}
+            onClick={() => setNewProject(false)}
+          >
             Cancel
           </HelpMuiButton>
           <HelpMuiButton
             help="create"
+            disabled={loadingDemo}
             onClick={() => void createProject(false)}
           >
             Create
@@ -2269,6 +2417,7 @@ export default function App() {
           {native && (
             <HelpMuiButton
               help="createLink"
+              disabled={loadingDemo}
               variant="contained"
               onClick={() => void createProject(true)}
             >
@@ -2426,12 +2575,6 @@ export default function App() {
           )}
         </DialogActions>
       </Dialog>
-      <Snackbar
-        open={!!notice}
-        message={notice}
-        autoHideDuration={7000}
-        onClose={() => setNotice("")}
-      />
     </div>
   );
 }
