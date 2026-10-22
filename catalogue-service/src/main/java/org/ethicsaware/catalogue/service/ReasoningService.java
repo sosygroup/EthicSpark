@@ -51,6 +51,7 @@ public class ReasoningService {
         this.workflow=workflow;this.catalogues=catalogues;this.files=files;this.gateway=gateway;this.db=db;
     }
     public Run generate(UUID id,Request request) {
+        gateway.validateConnection(request.provider(),request.providerConnectionId());
         Project p=workflow.get(id);
         if(!p.profile().confirmed() || p.revision()!=request.revision()) throw fail(HttpStatus.CONFLICT,"Confirm the current profile and reload the project before analysis.");
         if(request.actor()==null || request.actor().isBlank() || request.actor().length()>20000) throw fail(HttpStatus.BAD_REQUEST,"Reviewer name is required.");
@@ -68,7 +69,7 @@ public class ReasoningService {
         }
         String context=json.writeValueAsString(Map.of("profile",p.profile(),"attachments",material,"catalogue",Map.of("version",p.catalogueVersion(),"clusters",catalogue.clusters()),"selectedPhases",knownPhases(p)));
         if(context.length()>500000) throw fail(HttpStatus.BAD_REQUEST,"The profile and extracted material exceed the analysis limit. Remove material or supply shorter documents.");
-        var result=gateway.generate(request.provider(),request.model(),SYSTEM,context,images);
+        var result=gateway.generate(request.provider(),request.model(),SYSTEM,context,images,null,null,request.providerConnectionId());
         Output output;
         try { output=json.readValue(result.text(),Output.class);validate(output,catalogue,knownPhases(p)); }
         catch(Exception e) { throw fail(HttpStatus.BAD_GATEWAY,"The model returned an invalid catalogue proposal. No selection was changed. Try another model or run the analysis again."); }

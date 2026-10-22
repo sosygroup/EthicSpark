@@ -25,6 +25,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       CATALOGUE_PATH: /app/input/catalogue.xlsx
       CATALOGUE_REPORT: /app/reports/import-report.json
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-}
+      OPENAI_COMPATIBLE_MODELS: ${OPENAI_COMPATIBLE_MODELS:-}
+      OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-}
+      OPENAI_COMPATIBLE_CONFIG_PATH: /app/provider-config/openai-compatible.json
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODELS: ${OPENAI_MODELS:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
@@ -41,9 +46,11 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - catalogue-reports:/app/reports
+      - provider-config:/app/provider-config
     depends_on:
       database:
         condition: service_healthy
 volumes:
   catalogue-database:
   catalogue-reports:
+  provider-config:

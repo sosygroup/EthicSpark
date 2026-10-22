@@ -89,6 +89,43 @@ export function explainIssue(
         "Check that the local service is running, then reload the app when you are ready.",
       action: "reload",
     };
+  if (/\bHTTP\s+401\b|authentication was rejected/i.test(message))
+    return {
+      ...base,
+      title: "Model-service authentication was rejected",
+      explanation:
+        "The provider rejected the request's authentication or access policy (HTTP 401). Common causes include an invalid or revoked API key, the wrong organization/project or an IP restriction. The status alone does not identify which one applies.",
+      nextStep: /OpenAI-compatible/i.test(message)
+        ? "Open Model settings, choose OpenAI-compatible, check the API base URL and provider key, then Save connection. Authorise the saved connection again and retry. No restart is needed. Do not paste the key into chat."
+        : "Ask the person running the backend to check its configured provider API key and access policies, then restart the application service after any change. Retrying without fixing access will not help. Do not paste the key into chat.",
+    };
+  if (/\bHTTP\s+403\b/.test(message))
+    return {
+      ...base,
+      title: "The provider denied access",
+      explanation:
+        "The provider rejected access to the requested resource (HTTP 403). Account permissions, model access or an applicable access policy may be involved.",
+      nextStep:
+        "Check provider permissions and model availability for this account before retrying.",
+    };
+  if (/\bHTTP\s+429\b/.test(message))
+    return {
+      ...base,
+      title: "A provider limit was reached",
+      explanation:
+        "The provider reported a request-rate, credit or usage limit (HTTP 429). This status alone does not distinguish temporary throttling from exhausted credits.",
+      nextStep:
+        "Check provider usage, limits and billing. Wait if requests were throttled; exhausted credits or limits require an account change before retrying.",
+    };
+  if (/OLLAMA_REASONING_EFFORT/.test(message))
+    return {
+      ...base,
+      title: "The Ollama reasoning preference is incompatible",
+      explanation:
+        "The selected model did not accept the server's reasoning preference. Different Ollama models support different thinking controls; this is a compatibility issue in how the tool applies that setting.",
+      nextStep:
+        "Update EthicSpark to use supported controls automatically. On an older installation, leave OLLAMA_REASONING_EFFORT empty in the backend .env and restart the application service, then retry the same model.",
+    };
   if (
     /missing or oversized text|required field|is required|invalid duration|from 1 to 240/i.test(
       message,

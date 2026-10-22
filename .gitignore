@@ -18,3 +18,5 @@ output/
 MY-INPUT/*
 !MY-INPUT/.gitkeep
 *.inspect.ndjson
+
+provider-config/

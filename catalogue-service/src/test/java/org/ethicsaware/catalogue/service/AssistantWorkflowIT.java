@@ -24,6 +24,7 @@ class AssistantWorkflowIT {
     static final AtomicReference<String> INPUT=new AtomicReference<>("");
     static final AtomicInteger CALLS=new AtomicInteger();
     static volatile CountDownLatch started,release;
+    static final Path COMPATIBLE_CONFIG=Path.of(System.getProperty("java.io.tmpdir"),"ethics-compatible-it-"+UUID.randomUUID(),"provider.json");
     static final HttpServer STUB=server();
     static HttpServer server() {
         try {var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);server.createContext("/v1/chat/completions",exchange->{
@@ -31,11 +32,18 @@ class AssistantWorkflowIT {
             if(started!=null)started.countDown();if(release!=null)try{release.await(10,TimeUnit.SECONDS);}catch(InterruptedException e){java.lang.Thread.currentThread().interrupt();}
             byte[] bytes=JSON.writeValueAsString(Map.of("choices",List.of(Map.of("finish_reason","stop","message",Map.of("content",JSON.writeValueAsString(RESPONSE.get())))))).getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type","application/json");exchange.sendResponseHeaders(200,bytes.length);exchange.getResponseBody().write(bytes);exchange.close();
-        });server.start();return server;}catch(Exception e){throw new ExceptionInInitializerError(e);}
+        });
+        server.createContext("/api/show",exchange->{byte[] bytes="{\"thinking\":{\"values\":[\"medium\",\"high\"],\"default\":\"medium\"}}".getBytes(StandardCharsets.UTF_8);exchange.sendResponseHeaders(200,bytes.length);exchange.getResponseBody().write(bytes);exchange.close();});
+        server.createContext("/api/chat",exchange->{CALLS.incrementAndGet();INPUT.set(new String(exchange.getRequestBody().readAllBytes(),StandardCharsets.UTF_8));byte[] bytes=JSON.writeValueAsString(Map.of("done",true,"done_reason","stop","message",Map.of("content",JSON.writeValueAsString(RESPONSE.get())))).getBytes(StandardCharsets.UTF_8);exchange.sendResponseHeaders(200,bytes.length);exchange.getResponseBody().write(bytes);exchange.close();});
+        server.start();return server;}catch(Exception e){throw new ExceptionInInitializerError(e);}
     }
     @DynamicPropertySource static void config(DynamicPropertyRegistry properties) {
+        properties.add("OPENAI_COMPATIBLE_CONFIG_PATH",()->COMPATIBLE_CONFIG.toString());
+        properties.add("OLLAMA_BASE_URL",()->"http://127.0.0.1:"+STUB.getAddress().getPort()+"/v1");
         properties.add("OPENAI_BASE_URL",()->"http://127.0.0.1:"+STUB.getAddress().getPort()+"/v1");properties.add("OPENAI_API_KEY",()->"local-test-credential");
     }
+    @Autowired CompatibleProviderConfig compatible;
+    @Autowired WorkspaceMaintenance maintenance;
     @Autowired AssistantService service;
     @Autowired CatalogueStore catalogues;
     @Autowired WorkflowService workflow;
@@ -47,6 +55,25 @@ class AssistantWorkflowIT {
     }
     Thread conversation() {var p=service.createProject(new CreateProject("Conversation test"));return service.createThread(new CreateThread(p.id()));}
     Send request(Thread t,String text,Workspace workspace,boolean continuation) {return new Send(t.revision(),UUID.randomUUID(),text,"openai","gpt-test-model",true,List.of(),workspace,continuation);}
+    @Test void compatibleConversationRequiresCurrentConsentAndNeverExportsProviderCredentials() {
+        var t=conversation();var view=compatible.save(new CompatibleProviderConfig.Update("http://127.0.0.1:"+STUB.getAddress().getPort()+"/v1","local-vendor-secret",false,"max_tokens",2048,false));
+        var stale=new Send(t.revision(),UUID.randomUUID(),"Review this example","compatible","vendor/arbitrary-model",true,List.of(),null,false,null,null,"old-connection");
+        assertThatThrownBy(()->service.send(t.id(),stale)).hasMessageContaining("connection changed");assertThat(service.thread(t.id()).messages()).isEmpty();assertThat(CALLS.get()).isZero();
+        var result=service.send(t.id(),new Send(t.revision(),UUID.randomUUID(),"Review this example","compatible","vendor/arbitrary-model",true,List.of(),null,false,null,null,view.connectionId()));
+        assertThat(result.messages().getLast().status()).isEqualTo("complete");assertThat(CALLS.get()).isEqualTo(1);assertThat(JSON.readTree(INPUT.get()).path("model").asText()).isEqualTo("vendor/arbitrary-model");
+        assertThat(maintenance.export()).doesNotContain("local-vendor-secret");
+        compatible.save(new CompatibleProviderConfig.Update("http://127.0.0.1:"+STUB.getAddress().getPort()+"/v1",null,true,"max_tokens",2048,false));
+        assertThatThrownBy(()->service.send(t.id(),new Send(result.revision(),UUID.randomUUID(),"Next","compatible","vendor/arbitrary-model",true,List.of(),null,false,null,null,view.connectionId()))).hasMessageContaining("connection changed");assertThat(CALLS.get()).isEqualTo(1);
+    }
+    @Test void perRequestThinkingOverrideReachesOllamaAndInvalidObjectsDoNotCreateMessages() {
+        Thread t=conversation();
+        var invalid=new Send(t.revision(),UUID.randomUUID(),"Test","ollama","stub",true,List.of(),null,false,30,Map.of("level","high"));
+        assertThatThrownBy(()->service.send(t.id(),invalid)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);assertThat(service.thread(t.id()).messages()).isEmpty();assertThat(CALLS.get()).isZero();
+        var result=service.send(t.id(),new Send(t.revision(),UUID.randomUUID(),"Use the selected reasoning level","ollama","stub",true,List.of(),null,false,30,"high"));
+        assertThat(result.messages().getLast().status()).isEqualTo("complete");assertThat(JSON.readTree(INPUT.get()).path("think").asText()).isEqualTo("high");assertThat(CALLS.get()).isEqualTo(1);
+        result=service.send(t.id(),new Send(result.revision(),UUID.randomUUID(),"Use model default","ollama","stub",true,List.of(),null,false,30,""));
+        assertThat(result.messages().getLast().status()).isEqualTo("complete");assertThat(JSON.readTree(INPUT.get()).has("think")).isFalse();assertThat(CALLS.get()).isEqualTo(2);
+    }
     @Test void compactModelCatalogueKeepsEverySourceActionAndItsMeaningfulFields() {
         var source=catalogues.catalogue(catalogues.versions().getFirst().id()).orElseThrow();
         var compact=AssistantService.modelCatalogue(source);String encoded=JSON.writeValueAsString(compact);

@@ -24,9 +24,15 @@ public final class Assistant {
     public record CreateProject(String name) {}
     public record CreateThread(UUID projectId) {}
     public record Send(int revision,UUID requestKey,String text,String provider,String model,boolean consent,
-                       List<UUID> attachmentIds,Workspace workspace,boolean continuation,Integer keepAliveMinutes) {
+                       List<UUID> attachmentIds,Workspace workspace,boolean continuation,Integer keepAliveMinutes,Object ollamaThinking,String providerConnectionId) {
+        public Send(int revision,UUID requestKey,String text,String provider,String model,boolean consent,List<UUID> attachmentIds,Workspace workspace,boolean continuation,Integer keepAliveMinutes,Object ollamaThinking) {
+            this(revision,requestKey,text,provider,model,consent,attachmentIds,workspace,continuation,keepAliveMinutes,ollamaThinking,null);
+        }
+        public Send(int revision,UUID requestKey,String text,String provider,String model,boolean consent,List<UUID> attachmentIds,Workspace workspace,boolean continuation,Integer keepAliveMinutes) {
+            this(revision,requestKey,text,provider,model,consent,attachmentIds,workspace,continuation,keepAliveMinutes,null);
+        }
         public Send(int revision,UUID requestKey,String text,String provider,String model,boolean consent,List<UUID> attachmentIds,Workspace workspace,boolean continuation) {
-            this(revision,requestKey,text,provider,model,consent,attachmentIds,workspace,continuation,null);
+            this(revision,requestKey,text,provider,model,consent,attachmentIds,workspace,continuation,null,null);
         }
     }
     public record Execution(String operationId,String status,String summary,String output,Integer exitCode) {}

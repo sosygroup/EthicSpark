@@ -17,8 +17,9 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.invoke("workspace:read", project, path),
     prepareOperation: (project, operation) =>
       ipcRenderer.invoke("workspace:prepare", project, operation),
-    approveOperation: (ticket) =>
-      ipcRenderer.invoke("workspace:approve", ticket),
+    approveOperation: (ticket, lease) =>
+      ipcRenderer.invoke("workspace:approve", ticket, lease),
+    resetWorkspaceLinks: () => ipcRenderer.invoke("workspace:reset-links"),
     stopCommand: (ticket) => ipcRenderer.invoke("workspace:stop", ticket),
     onApplicationUpdateCheck: (callback) =>
       listen("application:check-update", callback),

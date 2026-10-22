@@ -1,5 +1,35 @@
 # Development changelog
 
+## 22 October 2026 — OpenAI-compatible API connections
+
+- Add a separate provider with editable API base URL and optional arbitrary-format key, supporting official OpenAI and third-party Chat Completions services.
+- Keep official OpenAI request behavior and environment configuration intact; expose all compatible model IDs and allow manual entry.
+- Offer token-parameter/output-limit controls and optional JSON mode for differing compatible APIs.
+- Persist keys only in private backend configuration; never return them to clients or include them in workspace exports. Endpoint changes clear omitted old keys, and saved changes require fresh project-processing permission.
+- Verification: 48 Java/PostgreSQL and 13 frontend tests passed using local HTTP stubs; live UI checks verified the new form without entering credentials or calling a remote provider.
+
+## 22 October 2026 — Restore the original demo on reset
+
+- Complete workspace reset recreates the original six-stage, 12-message offline demo in the same transaction, removing user additions to its previous copy.
+- First launch on a new empty database initializes the same demo once. Existing projects are preserved on upgrade, and normal restarts do not restore a demo deliberately removed by the user.
+- Fresh clients automatically open the walkthrough when it is the only project/conversation.
+- Verification: 45 Java/PostgreSQL and 12 frontend tests passed. Live startup from the already empty local workspace restored one demo, one conversation and 12 messages, with no Trash entries.
+
+## 22 October 2026 — Settings and workspace reset
+
+- Add Model settings → Reset… with separate client-preference and permanent shared-workspace actions.
+- Offer archival JSON export, data counts, exact RESET confirmation and refusal when the reviewed data changes. Include Trash and previous structured-workflow records; keep catalogue and host files intact.
+- Block reset during requests and native approvals/commands; add expiring operation leases and safe folder-link cleanup. Updated native bridge requires reopening the desktop app.
+- Configured server credentials and Ollama installations are kept. The later correction above restores the original demo on reset.
+- Verification: 44 Java/PostgreSQL, 12 frontend and 13 native tests passed. Browser checks confirmed the confirmation guard and actual client-only reset, with real backend data counts unchanged.
+
+## 22 October 2026 — Compatible Ollama reasoning and provider diagnostics
+
+- Add per-model Reasoning level in Model settings: Automatic (compatible), Model default and only model-advertised controls. Manual choices override the server preference; unsupported choices use model default without switching models.
+- Handle named levels, boolean-only metadata and models without thinking controls. Hardware benchmarking is not implied; Docker resources do not necessarily represent the Ollama host.
+- Explain provider HTTP 401 authentication, 403 access and 429 limits separately, including historical messages in Notifications, without exposing provider response bodies or credentials.
+- Verification: 41 Java/PostgreSQL tests and 10 frontend helper tests passed, with TypeScript checking and the production frontend build. Tests use local HTTP stubs.
+
 ## 19 October 2026 — Discreet notification center
 
 - Add an upper-right bell and severity-colored unread dot. Runtime feedback is opened on demand in a side panel, with plain-language cause explanations, suggested actions and expandable technical details.

@@ -130,7 +130,29 @@ if (primary)
     handle("workspace:prepare", (project, operation) =>
       agent.prepare(project, operation),
     );
-    handle("workspace:approve", (ticket) => agent.approve(ticket));
+    handle("workspace:approve", (ticket, lease) =>
+      agent.approve(ticket, async () => {
+        if (typeof lease !== "string" || !/^[a-f0-9-]{36}$/.test(lease))
+          throw Error("Reload EthicSpark before approving operations.");
+        const response = await fetch(
+          new URL(
+            "/api/assistant/maintenance/operations/" + lease + "/renew",
+            target,
+          ),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+            signal: AbortSignal.timeout(10000),
+          },
+        );
+        if (!response.ok)
+          throw Error(
+            "Operation permission expired or workspace changed. Review the operation again.",
+          );
+      }),
+    );
+    handle("workspace:reset-links", () => agent.resetLinks());
     handle("workspace:stop", (ticket) => agent.stop(ticket));
     window.webContents.session.webRequest.onCompleted(
       { urls: [target.origin + "/assets/*"] },

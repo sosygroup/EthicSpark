@@ -14,7 +14,7 @@ export const help: Record<string, HelpEntry> = {
   },
   start: {
     title: "How to use EthicSpark",
-    text: "To browse without AI, choose Explore catalogue. No project, API key or Ollama is needed.\nFor an AI conversation:\n1. Open Model settings. Choose OpenAI, Anthropic Claude or Ollama, select a model and authorise processing for this project.\n2. Describe what you want in the message box. For example: ‘Review this API design and suggest tests.’\n3. Optionally attach documents or link a local project folder.\n4. Send your message, read the answer and ask follow-up questions. Review any proposed file change or command separately.\nOpen the bell in the upper-right corner (or press Alt+N) to read runtime notifications, explanations and suggested actions. A colored dot marks unread items. No application profile or catalogue selection is required. Relevant ethical considerations appear alongside general development advice.\nThe desktop app supports live folders, file edits and commands. The browser supports chat, attachments and downloads. Docker must remain running. A configured model is required; a ChatGPT or Claude chat subscription alone does not supply API access.",
+    text: "To browse without AI, choose Explore catalogue. No project, API key or Ollama is needed.\nFor an AI conversation:\n1. Open Model settings. Choose OpenAI, OpenAI-compatible, Anthropic Claude or Ollama, select a model and authorise processing for this project.\n2. Describe what you want in the message box. For example: ‘Review this API design and suggest tests.’\n3. Optionally attach documents or link a local project folder.\n4. Send your message, read the answer and ask follow-up questions. Review any proposed file change or command separately.\nOpen the bell in the upper-right corner (or press Alt+N) to read runtime notifications, explanations and suggested actions. A colored dot marks unread items. No application profile or catalogue selection is required. Relevant ethical considerations appear alongside general development advice.\nThe desktop app supports live folders, file edits and commands. The browser supports chat, attachments and downloads. Docker must remain running. A configured model is required; a ChatGPT or Claude chat subscription alone does not supply API access.",
   },
   conversation: {
     title: "New conversation",
@@ -34,11 +34,11 @@ export const help: Record<string, HelpEntry> = {
   },
   settings: {
     title: "Model connection",
-    text: "Choose the provider and model that answer your requests. Configure provider credentials on the local backend first, then load or enter a model ID. Authorise processing of this project's shared material. These choices are remembered; you can change them later. The catalogue is supplied automatically.",
+    text: "Choose the provider and model that answer your requests. For OpenAI-compatible services, enter and save a base URL and optional key here; advanced options cover token parameters and JSON mode. Other provider credentials are configured on the backend. Load or enter a model ID. Authorise processing of this project's shared material. These choices are remembered; you can change them later. The catalogue is supplied automatically.",
   },
   provider: {
     title: "Provider",
-    text: "Select the service that will process your conversation. OpenAI and Anthropic Claude require API credentials in the backend's local .env file. Ollama requires a running, configured local model server. Shared messages, attachments, file contents and command output may be sent to the selected service after you authorise processing.",
+    text: "Select the service that will process your conversation. OpenAI and Anthropic Claude require API credentials in the backend's local .env file. OpenAI-compatible accepts official or third-party Chat Completions services: configure its API base URL and optional key in Model settings. Keys are saved only on the backend; changing the connection requires fresh processing permission. Ollama requires a running, configured local model server. Shared messages, attachments, file contents and command output may be sent to the selected service after you authorise processing.",
   },
   model: {
     title: "Model ID",

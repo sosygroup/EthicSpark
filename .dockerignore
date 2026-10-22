@@ -14,3 +14,5 @@ MY-INPUT
 *.p12
 *.pfx
 **/*.inspect.ndjson
+
+provider-config/

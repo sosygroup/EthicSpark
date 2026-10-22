@@ -83,6 +83,7 @@ export type Thread = {
   receipts: Receipt[];
 };
 export type Provider = {
+  connectionId?: string;
   id: string;
   name: string;
   configured: boolean;
@@ -125,7 +126,8 @@ export interface Desktop {
   unlinkFolder: (project: string) => Promise<null>;
   readFile: (project: string, path: string) => Promise<FileContext>;
   prepareOperation: (project: string, operation: Operation) => Promise<Preview>;
-  approveOperation: (ticket: string) => Promise<Receipt>;
+  approveOperation: (ticket: string, lease?: string) => Promise<Receipt>;
+  resetWorkspaceLinks?: () => Promise<void>;
   stopCommand: (ticket: string) => Promise<void>;
   onWorkspaceChanged: (
     callback: (event: { projectId: string }) => void,

@@ -100,6 +100,15 @@ public class AssistantService {
     public Thread createThread(CreateThread request) {
         return tx.execute(status->{lockProject(request.projectId(),false);UUID id=UUID.randomUUID();db.update("INSERT INTO assistant_thread(id,project_id,title) VALUES (?,?,?)",id,request.projectId(),"New conversation");return thread(id);});
     }
+    /** One-time first-run example; upgrading an existing workspace never overwrites its projects. */
+    public void initializeDefaultWorkspace() {
+        tx.executeWithoutResult(status->{
+            db.execute("SELECT pg_advisory_xact_lock(194672531)");
+            if(Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS (SELECT 1 FROM workspace_initialization WHERE name='first-run-v1')",Boolean.class))) return;
+            if(Boolean.TRUE.equals(db.queryForObject("SELECT NOT EXISTS (SELECT 1 FROM workflow_project)",Boolean.class))) loadDemo();
+            db.update("INSERT INTO workspace_initialization(name) VALUES ('first-run-v1')");
+        });
+    }
     public record DemoTurn(String user,String message,List<Artifact> artifacts,List<Citation> citations) {}
     /** Explicit, offline and repeatable. Never replace a developer's subsequent demo edits. */
     public Thread loadDemo() {
@@ -136,6 +145,8 @@ public class AssistantService {
         return new Thread(t.id(),t.projectId(),t.title(),t.revision(),messages,receipts);
     }
     public Thread send(UUID id,Send request) {
+        LlmGateway.validateThinkingPreference(request.ollamaThinking());
+        gateway.validateConnection(request.provider(),request.providerConnectionId());
         if(request.requestKey()==null) throw fail(HttpStatus.BAD_REQUEST,"Request key is required.");
         String text=bounded(request.text(),32000);
         if(!request.consent()) throw fail(HttpStatus.BAD_REQUEST,"Allow the selected provider to process this conversation and shared context in Model settings first.");
@@ -179,7 +190,7 @@ public class AssistantService {
             String context=json.writeValueAsString(modelInput);
             if(context.length()>500000) throw fail(HttpStatus.BAD_REQUEST,"The shared context is too large. Start a focused conversation or attach shorter documents.");
             double preparationSeconds=(System.nanoTime()-preparationStarted)/1_000_000_000.0;
-            var result=gateway.generate(request.provider(),request.model(),SYSTEM,context,images,request.keepAliveMinutes());
+            var result=gateway.generate(request.provider(),request.model(),SYSTEM,context,images,request.keepAliveMinutes(),request.ollamaThinking(),request.providerConnectionId());
             Output output;
             try { output=validateOutput(json.readValue(result.text(),Output.class),source,workspace); }
             catch(Exception e) { throw fail(HttpStatus.BAD_GATEWAY,"The model returned an invalid response or operation. Nothing was executed. Retry or choose another model."); }

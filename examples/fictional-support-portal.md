@@ -22,4 +22,4 @@ In **Model settings**, choose Ollama, click **Load available models** and select
 
 ## Fresh installations
 
-Git contains application code, the public catalogue and this example. It does not contain the author's local database, conversations, uploaded documents, linked folders, credentials or Ollama models. A new database starts with no saved projects. The example button fills the message box without sending a request or creating a project. Updating an existing installation preserves its local Docker database.
+Git contains application code, the public catalogue and this example. It does not contain the author's local database, conversations, uploaded documents, linked folders, credentials or Ollama models. A new database starts with only the original offline demo (six stages and 12 messages). Reset workspace restores a fresh copy of this demo and removes user additions. Normal updates preserve existing projects. The example button fills the message box without sending a request or creating a project. Updating an existing installation preserves its local Docker database.

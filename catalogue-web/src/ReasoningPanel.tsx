@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import type { Cluster, ClusterProposal, Project, ReasoningRun } from "./types";
 type Provider = {
+  connectionId?: string;
   id: string;
   name: string;
   configured: boolean;
@@ -74,7 +75,7 @@ export default function ReasoningPanel({
     setModels([]);
     setModel("");
     setConsent(false);
-  }, [provider]);
+  }, [provider, current?.connectionId]);
   useEffect(() => {
     setRun(null);
     setChosen([]);
@@ -112,6 +113,8 @@ export default function ReasoningPanel({
         provider,
         model,
         consent,
+        providerConnectionId: providers.find((p) => p.id === provider)
+          ?.connectionId,
       });
       setRun(result);
       setChosen(result.output.clusters);

@@ -73,6 +73,7 @@ class WorkspaceAgent {
     this.roots = {};
     this.tickets = new Map();
     this.running = new Map();
+    this.approving = 0;
     this.watchers = new Map();
   }
   async init() {
@@ -316,7 +317,32 @@ class WorkspaceAgent {
     });
     return { ticket, ...preview };
   }
-  async approve(ticket) {
+  async resetLinks() {
+    if (this.approving || this.running.size)
+      throw Error(
+        "Wait for approvals and commands to finish before resetting folder links.",
+      );
+    const old = this.roots;
+    this.roots = {};
+    try {
+      await this.persist();
+    } catch (error) {
+      this.roots = old;
+      throw error;
+    }
+    for (const watcher of this.watchers.values()) watcher.close();
+    this.watchers.clear();
+    this.tickets.clear();
+  }
+  async approve(ticket, ensureActive = async () => {}) {
+    this.approving++;
+    try {
+      return await this.approveInternal(ticket, ensureActive);
+    } finally {
+      this.approving--;
+    }
+  }
+  async approveInternal(ticket, ensureActive) {
     const prepared = this.tickets.get(ticket);
     if (!prepared) throw Error("Approval expired or already used.");
     this.tickets.delete(ticket);
@@ -330,6 +356,7 @@ class WorkspaceAgent {
         output: "",
         exitCode: null,
       };
+    await ensureActive();
     if (operation.kind === "write") {
       const resolved = await this.resolve(project, operation.path, {
         create: true,

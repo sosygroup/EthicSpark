@@ -63,3 +63,38 @@ test("history is bounded and technical details are truncated", () => {
   markNoticesRead();
   clearReadNotices();
 });
+
+test("provider authentication and thinking compatibility have specific recovery instructions", () => {
+  for (const message of [
+    "OpenAI returned HTTP 401. Check server configuration, model access, input compatibility and provider quota.",
+    "OpenAI returned HTTP 401. Authentication was rejected.",
+  ]) {
+    const issue = explainIssue(message, "openai");
+    assert.match(issue.title, /authentication/i);
+    assert.match(issue.nextStep, /backend/);
+    assert.doesNotMatch(issue.explanation, /resource limits|quota/);
+  }
+  assert.match(
+    explainIssue(
+      "This model does not support the configured OLLAMA_REASONING_EFFORT.",
+      "ollama",
+    ).nextStep,
+    /leave OLLAMA_REASONING_EFFORT empty/,
+  );
+  assert.match(
+    explainIssue("OpenAI returned HTTP 403.", "openai").title,
+    /denied access/,
+  );
+  assert.match(
+    explainIssue("OpenAI returned HTTP 429.", "openai").title,
+    /limit/,
+  );
+});
+
+test("compatible authentication errors direct the user to editable connection settings", () => {
+  const notice = explainIssue(
+    "OpenAI-compatible returned HTTP 401. Authentication was rejected.",
+  );
+  assert.match(notice.nextStep, /Save connection/);
+  assert.match(notice.nextStep, /No restart/);
+});

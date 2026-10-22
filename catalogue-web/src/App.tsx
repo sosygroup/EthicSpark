@@ -43,6 +43,11 @@ import Diagram from "./Diagram";
 import ArtifactView from "./ArtifactView";
 import { downloadArtifact as download } from "./visual-utils";
 import ModelLoadingGauge from "./ModelLoadingGauge";
+import ModelThinkingSelector from "./ModelThinkingSelector";
+import ResetDialog from "./ResetDialog";
+import CompatibleProviderSettings from "./CompatibleProviderSettings";
+import { clearSettingsPreferences } from "./reset-preferences";
+import { thinkingRequest, readThinkingPreferences } from "./model-thinking";
 import { ModuleLoadBoundary } from "./AppUpdateNotice";
 import { explainIssue, reportIssue, reportNotice } from "./notification-store";
 import { openNotifications } from "./NotificationCenter";
@@ -201,6 +206,7 @@ export default function App() {
       localStorage.getItem("ethicspark-model") || "",
     ),
     [models, setModels] = useState<string[]>([]);
+  const [resetOpen, setResetOpen] = useState(false);
   const [manualModel, setManualModel] = useState(false);
   const [modelsOpen, setModelsOpen] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
@@ -211,6 +217,20 @@ export default function App() {
     [settings, setSettings] = useState(false),
     [newProject, setNewProject] = useState(false),
     [projectName, setProjectName] = useState("");
+  useEffect(() => {
+    if (!settings) return;
+    let active = true;
+    void api<Provider[]>("/api/reasoning/providers")
+      .then((data) => {
+        if (active) setProviders(data);
+      })
+      .catch((e) => {
+        if (active) setError(e.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [settings]);
   const [attached, setAttached] = useState<Attachment[]>([]),
     [uploading, setUploading] = useState(false),
     [panel, setPanel] = useState<"files" | "artifacts" | "activity" | null>(
@@ -267,6 +287,18 @@ export default function App() {
   const [customRetention, setCustomRetention] = useState<
     Record<string, string>
   >({});
+  const [thinkingPreferences, setThinkingPreferences] = useState<
+    Record<string, string>
+  >(() => {
+    return readThinkingPreferences(localStorage.getItem("ethicspark-thinking"));
+  });
+  useEffect(() => {
+    localStorage.setItem(
+      "ethicspark-thinking",
+      JSON.stringify(thinkingPreferences),
+    );
+  }, [thinkingPreferences]);
+  const thinkingPreference = thinkingPreferences[model.trim()] || "auto";
   const retentionKey = model.trim();
   const retentionMinutes = retentionPreferences[retentionKey] ?? 30;
   const retentionDraft = customRetention[retentionKey];
@@ -405,7 +437,13 @@ export default function App() {
     composer = useRef<HTMLTextAreaElement | null>(null);
   const project = projects.find((p) => p.id === projectId),
     currentProvider = providers.find((p) => p.id === provider);
-  const consentKey = projectId + ":" + provider,
+  const consentKey =
+      projectId +
+      ":" +
+      provider +
+      (provider === "compatible"
+        ? ":" + (currentProvider?.connectionId || "")
+        : ""),
     consent = !!consents[consentKey];
   const artifacts =
     thread?.messages.flatMap((m) => m.output?.artifacts || []) || [];
@@ -430,6 +468,19 @@ export default function App() {
           if (active) {
             setThread(t);
             setProjectId(t.projectId);
+          }
+        } else if (
+          data.ps.length === 1 &&
+          data.ts.length === 1 &&
+          data.ps[0].name === "Demo — fictional support portal" &&
+          data.ts[0].projectId === data.ps[0].id
+        ) {
+          const demo = await api<Thread>(
+            "/api/assistant/threads/" + data.ts[0].id,
+          );
+          if (active) {
+            setThread(demo);
+            setProjectId(demo.projectId);
           }
         } else if (!data.ps.some((p) => p.id === projectId)) setProjectId("");
       })
@@ -865,6 +916,14 @@ export default function App() {
           provider,
           model,
           consent: true,
+          providerConnectionId:
+            provider === "compatible"
+              ? currentProvider?.connectionId
+              : undefined,
+          ollamaThinking:
+            provider === "ollama"
+              ? thinkingRequest(thinkingPreference)
+              : undefined,
           keepAliveMinutes: provider === "ollama" ? retentionMinutes : null,
           attachmentIds: round ? [] : initialFiles,
           workspace: context,
@@ -1040,8 +1099,26 @@ export default function App() {
     if (!preview || !native) return;
     setExecuting(true);
     setLiveOutput("");
+    let lease: string | undefined;
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
     try {
-      const result = await native.approveOperation(preview.value.ticket);
+      const activity = await api<{ id: string }>(
+        "/api/assistant/maintenance/operations",
+        { projectId: thread?.projectId },
+      );
+      lease = activity.id;
+      heartbeat = setInterval(() => {
+        void api(
+          "/api/assistant/maintenance/operations/" + activity.id + "/renew",
+          {},
+        ).catch(() => {
+          void native.stopCommand(preview.value.ticket);
+        });
+      }, 15000);
+      const result = await native.approveOperation(
+        preview.value.ticket,
+        activity.id,
+      );
       await record(preview.message, preview.operation, result);
       setNotice(result.summary);
       setPreview(null);
@@ -1056,6 +1133,11 @@ export default function App() {
       });
       setPreview(null);
     } finally {
+      if (heartbeat) clearInterval(heartbeat);
+      if (lease)
+        await fetch("/api/assistant/maintenance/operations/" + lease, {
+          method: "DELETE",
+        }).catch(() => {});
       setExecuting(false);
     }
   }
@@ -2084,6 +2166,35 @@ export default function App() {
           </Button>
         </DialogActions>
       </Dialog>
+      <ResetDialog
+        open={resetOpen}
+        blocked={
+          busy ||
+          executing ||
+          uploading ||
+          managing ||
+          unloading ||
+          loadingModels ||
+          warmup?.status === "preparing"
+        }
+        onClose={() => setResetOpen(false)}
+        onResetSettings={() => {
+          clearSettingsPreferences(localStorage);
+          setProvider("openai");
+          setModel("");
+          setModels([]);
+          setManualModel(false);
+          setModelsOpen(false);
+          setConsents({});
+          setRetentionPreferences({});
+          setCustomRetention({});
+          setThinkingPreferences({});
+          setPreloadEnabled(true);
+          warmupRef.current = null;
+          setWarmup(null);
+          setUnloadedModel("");
+        }}
+      />
       <Dialog
         open={settings}
         onClose={() => setSettings(false)}
@@ -2173,6 +2284,22 @@ export default function App() {
               {manualModel ? "Use model list" : "Enter model ID manually"}
             </Button>
           </div>
+          {provider === "compatible" && (
+            <CompatibleProviderSettings
+              disabled={
+                busy || executing || uploading || unloading || loadingModels
+              }
+              onSaved={async () => {
+                const updated = await api<Provider[]>(
+                  "/api/reasoning/providers",
+                );
+                setProviders(updated);
+                setModels([]);
+                setModel("");
+                setModelsOpen(false);
+              }}
+            />
+          )}
           {currentProvider && !currentProvider.configured && (
             <Alert severity="info">
               {currentProvider.setup} Keys stay on the backend; they are never
@@ -2181,6 +2308,17 @@ export default function App() {
           )}
           {currentProvider?.id === "ollama" && (
             <>
+              <ModelThinkingSelector
+                model={model}
+                value={thinkingPreference}
+                disabled={busy || unloading}
+                onChange={(choice) =>
+                  setThinkingPreferences((old) => ({
+                    ...old,
+                    [model.trim()]: choice,
+                  }))
+                }
+              />
               <Alert severity="info">
                 Start Ollama and install a model first. Use a vision model for
                 image attachments. Preparation sends only the model ID; project
@@ -2341,8 +2479,9 @@ export default function App() {
             About processing permission <Info topic="consent" />
           </div>
           <p className="settings-note">
-            OpenAI/Claude use API credentials configured in the local .env. A
-            consumer chat subscription is not an API key. See
+            OpenAI/Claude use API credentials configured in the local .env.
+            OpenAI-compatible connections can be configured above. A consumer
+            chat subscription is not an API key. See
             docs/CONVERSATIONAL_WORKSPACE.md.
           </p>
           <a href="/?legacy=1" className="legacy-link">
@@ -2351,6 +2490,14 @@ export default function App() {
           <Info topic="legacy" />
         </DialogContent>
         <DialogActions>
+          <Button
+            onClick={() => {
+              setSettings(false);
+              setResetOpen(true);
+            }}
+          >
+            Reset…
+          </Button>
           <HelpMuiButton help="close" onClick={() => setSettings(false)}>
             Done
           </HelpMuiButton>

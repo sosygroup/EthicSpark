@@ -17,14 +17,15 @@ import java.nio.file.Path;
 public class CatalogueBootstrap implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(CatalogueBootstrap.class);
     private final CatalogueStore store;
+    private final AssistantService assistant;
     private final Path source;
     private final Path reportFile;
     private final boolean enabled;
 
-    public CatalogueBootstrap(CatalogueStore store, @Value("${catalogue.import.path}") String source,
+    public CatalogueBootstrap(CatalogueStore store, AssistantService assistant, @Value("${catalogue.import.path}") String source,
                               @Value("${catalogue.import.report}") String report,
                               @Value("${catalogue.import.enabled:true}") boolean enabled) {
-        this.store = store; this.source = Path.of(source); this.reportFile = Path.of(report); this.enabled = enabled;
+        this.store = store; this.assistant=assistant; this.source = Path.of(source); this.reportFile = Path.of(report); this.enabled = enabled;
     }
 
     @Override public void run(ApplicationArguments arguments) throws Exception {
@@ -37,6 +38,7 @@ public class CatalogueBootstrap implements ApplicationRunner {
         if (!result.report().valid())
             throw new IllegalStateException("Catalogue import failed. Read the validation report: " + reportFile);
         String id = store.save(result, bytes);
+        assistant.initializeDefaultWorkspace();
         log.info("Catalogue {} imported: {} clusters, {} actions, {} references, {} warnings. State IMPORTED; publication review remains required.",
                 id, result.report().clusterCount(), result.report().actionCount(), result.report().referenceCount(), result.report().warningCount());
     }

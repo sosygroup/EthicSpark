@@ -239,3 +239,58 @@ test("open folder uses only the linked directory and unlink invalidates pending 
   await assert.rejects(agent.approve(ticket.ticket), /expired/);
   assert.equal((await fs.stat(folder)).isDirectory(), true);
 });
+
+test("reset removes links, watchers and approval tickets without touching project files", async (t) => {
+  const { agent, project, folder, root } = await fixture(t);
+  await fs.writeFile(path.join(folder, "keep.txt"), "keep");
+  const preview = await agent.prepare(project, {
+    kind: "write",
+    path: "new.txt",
+    content: "new",
+    baseSha256: "",
+    reason: "test",
+  });
+  await agent.resetLinks();
+  assert.equal(
+    await fs.readFile(path.join(folder, "keep.txt"), "utf8"),
+    "keep",
+  );
+  assert.deepEqual(
+    JSON.parse(
+      await fs.readFile(path.join(root, "state", "links.json"), "utf8"),
+    ),
+    {},
+  );
+  assert.equal(agent.watchers.size, 0);
+  assert.equal(agent.tickets.size, 0);
+  await assert.rejects(agent.approve(preview.ticket), /expired|used/);
+});
+test("reset is blocked during approval and an expired backend lease prevents file changes", async (t) => {
+  let answer;
+  const { agent, project, folder } = await fixture(
+    t,
+    () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+  );
+  const preview = await agent.prepare(project, {
+    kind: "write",
+    path: "new.txt",
+    content: "new",
+    baseSha256: "",
+    reason: "test",
+  });
+  const pending = agent.approve(preview.ticket, async () => {
+    throw Error("Operation permission expired");
+  });
+  // The active approval is counted synchronously, including while the native dialog is open.
+  await assert.rejects(agent.resetLinks(), /approvals and commands/);
+  while (!answer) await new Promise((resolve) => setImmediate(resolve));
+  answer(true);
+  await assert.rejects(pending, /permission expired/);
+  await assert.rejects(fs.stat(path.join(folder, "new.txt")), {
+    code: "ENOENT",
+  });
+  await agent.resetLinks();
+});

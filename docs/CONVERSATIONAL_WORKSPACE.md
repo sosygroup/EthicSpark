@@ -39,9 +39,9 @@ Examples: “Help me understand this repository”, “Investigate why these tes
 
 ## Offline lifecycle demonstration
 
-Choose **+** beside Projects, then **Load demo project**. No provider configuration or processing consent is needed to load it. The bundled fictional support portal contains six question/answer pairs, from Requirements to Operations, with an architecture diagram, implementation sketch, planned-test chart and release/incident checklists. Everything is labelled as an authored demonstration: no inference, file operations or tests are performed.
+Choose **+** beside Projects, then **Load demo project**. No provider configuration or processing consent is needed to load it. The bundled fictional support portal contains six question/answer pairs, from Requirements to Operations, with an architecture diagram, implementation sketch, planned-test chart and release/incident checklists. Fresh installations and complete resets include this original demo. During normal use, loading it again preserves subsequent conversation. Everything is labelled as an authored demonstration: no inference, file operations or tests are performed.
 
-The endpoint `POST /api/assistant/projects/demo` (empty body) creates the example once and returns its conversation. Repeating it reopens the same project and thread. If the project is in Trash it is restored, retaining any additional conversations and edits. Renaming the project does not change its demo identity. A fresh database still starts without projects: startup never loads the demo. To ask a live follow-up, configure a provider and explicitly authorise processing as for any other project.
+The endpoint `POST /api/assistant/projects/demo` (empty body) creates the example once and returns its conversation. Repeating it reopens the same project and thread. If the project is in Trash it is restored, retaining any additional conversations and edits. Renaming the project does not change its demo identity. A fresh database starts with the original demo after catalogue import. This one-time initialization does not restore a deliberately removed demo on ordinary restarts. Complete workspace reset explicitly recreates its original contents. To ask a live follow-up, configure a provider and explicitly authorise processing as for any other project.
 
 ## Visual artifacts in conversation
 
@@ -132,6 +132,24 @@ The compact catalogue projection preserves the source text of every action and i
 
 After a provider failure, **Retry with saved context** submits a new request using the saved conversation, including when the first response failed. Each retry is a new inference request. Earlier error messages remain in history.
 
+## Choosing an Ollama reasoning level
+
+In **Model settings**, select Ollama and a model, then use **Reasoning level**:
+
+- **Automatic (compatible)** applies the server's `OLLAMA_REASONING_EFFORT` only when compatible with the selected model. The default preference is `low`; otherwise Ollama's model default applies.
+- **Model default** omits `think` regardless of the server preference.
+- Other entries are the selected model's advertised controls, such as Low/Medium/High or On/Off. A manual choice overrides the server preference. If the choice becomes unsupported, the request uses model default without switching models or making an extra inference request.
+
+Preferences are remembered separately for each model ID in the current browser/desktop app. The capability check sends only the model ID to Ollama's `/api/show`; it does not send project material or run inference. Older Ollama metadata that advertises thinking without named levels exposes On/Off. No adjustable controls are invented for other models.
+
+Automatic is a compatibility choice, not hardware tuning. CPU/RAM and model size alone do not determine supported reasoning levels; a Docker backend may see different resources from the Ollama host. Lower levels can shorten reasoning where supported, but model size, quantization and context are the main loading-memory constraints. The tool does not measure available host memory or guarantee that a selected model will fit.
+
+## Model-service authentication and access errors
+
+An **HTTP 401** notification means the provider rejected authentication. The installation operator should check the active server-side provider key (for example `OPENAI_API_KEY`), its organisation/project and applicable access or IP restrictions, then restart with `./scripts/run.sh` after changing the ignored `.env`. Do not paste credentials into a conversation. A ChatGPT account subscription does not configure a provider API key in this application.
+
+HTTP 403 indicates denied access; HTTP 429 can indicate rate or credit/usage limits. The status alone does not identify the exact account-policy or billing cause. Provider response bodies and credentials are not echoed in these errors. Earlier failed responses remain in history; after correcting configuration, use **Retry with saved context** to make a new request.
+
 ## Ollama preparation and performance diagnostics
 
 **Preload the selected Ollama model** is enabled by default in Model settings and can be disabled there. After an installed model ID is selected or restored, preparation sends only that ID to Ollama; it sends no project prompt, attachment, catalogue or file content. **Prepare model now** retries or refreshes preparation. While it runs, Model settings displays an animated circular gauge with elapsed time. The gauge is indeterminate: Ollama does not expose a live loading percentage, so the app does not estimate one. Closing and reopening settings retains the elapsed time for that preparation. Completion or failure replaces the gauge with the actual result. Reduced-motion preferences stop the circular animation while the timer and status remain available. Simultaneous preparation requests for the same model and duration are coalesced on the backend. No model is downloaded automatically. Catalogue exploration remains independent and does not trigger model preparation.
@@ -142,7 +160,7 @@ API clients and the earlier structured workflow that omit a duration use `OLLAMA
 
 The configured `OLLAMA_BASE_URL` continues to accept a `/v1` suffix. The backend removes that suffix to reach `/api/generate`, `/api/chat` and `/api/show`; reverse proxies must expose those native endpoints too. Existing cloud OpenAI and Anthropic transports remain unchanged. Images use Ollama’s native base64 message field; source catalogue content, JSON response validation and per-operation approvals are retained.
 
-`OLLAMA_REASONING_EFFORT` uses an advertised thinking level when `/api/show` supplies supported values. An unsupported configured level gives an explicit error. Older models that advertise thinking but only provide a boolean switch receive `true` for a nonempty effort; `none`/`false` disables thinking. Models without thinking omit the control. An empty setting keeps the model default.
+`OLLAMA_REASONING_EFFORT` uses an advertised thinking level when `/api/show` supplies supported values. An unsupported configured level is omitted, so Ollama uses the selected model’s default. Older models that advertise thinking but only provide a boolean switch receive `true` for a nonempty effort; `none`/`false` disables thinking. Models without thinking omit the control. An empty setting keeps the model default.
 
 After a completed answer, expand **Response timing** to inspect backend context preparation, model-request wall time, and Ollama-reported model loading, prompt processing, generation, input/output token counts and generation rate. Missing values remain **Not reported**. The earlier preload duration is shown separately in settings and is not included in the answer’s loading duration. Transport/scheduling overhead means wall time need not equal the sum of the other fields. Timing records persist with the response; older messages are not backfilled. During a request, the interface displays a combined context/generation waiting state, not inferred real-time subphase progress. No speedup or quality improvement is guaranteed.
 
@@ -154,7 +172,7 @@ The optional assistant message field is `keepAliveMinutes`; preparation accepts 
 
 **Load available models** opens a complete, unfiltered dropdown for the selected provider. Choose the model explicitly; loading the list does not automatically select or preload its first entry. Saved available selections are retained. **Enter model ID manually** remains an alternative for exact IDs. Loading a list sends no project context and downloads no model.
 
-A new Docker database has no saved projects. The bundled [fictional example](../examples/fictional-support-portal.md) and welcome button **Try a fictional example** supply a safe starting prompt; selecting it only fills the composer. Model processing requires a separate explicit send and permission. Author test projects are not Git data. Existing Docker volumes are preserved on update. Delete project moves local projects into recoverable Trash and does not delete linked folders.
+A new Docker database contains only the original offline demo, with no author test history. The bundled [fictional example](../examples/fictional-support-portal.md) and welcome button **Try a fictional example** supply a safe starting prompt; selecting it only fills the composer. Model processing requires a separate explicit send and permission. Author test projects are not Git data. Existing Docker volumes are preserved on update. Delete project moves local projects into recoverable Trash and does not delete linked folders.
 
 ## Updating an open browser or desktop window
 
@@ -181,3 +199,38 @@ Workspace action errors, model preparation failures, source-catalogue loading fa
 ![Notification center with explanatory guidance](screenshots/notification-center.png)
 
 Illustrative notification panel from synthetic connection and module-loading failures; this is not model output or empirical evaluation evidence.
+
+
+## Reset settings or workspace
+
+Open **Model settings → Reset…**. The dialog distinguishes two scopes:
+
+- **Reset settings** restores OpenAI with no selected model, clears per-project processing consents in this client, restores automatic compatible reasoning, enables preload and restores 30-minute per-model retention. Projects, conversations, attachments, unsent text and folder links are preserved. An already loaded model is not unloaded. Server `.env` values and credentials are kept.
+- **Reset workspace** permanently clears all projects, including Trash and the previous structured workflow, threads, messages, uploaded files, generated artifacts, operation receipts, profile/review/plan history and saved demo identity. The catalogue and import provenance are retained. The client clears its EthicSpark preferences/draft/context selections and, in the updated desktop app, unlinks all folders and invalidates approval tickets without changing their files. The original offline demo is recreated in the same reset transaction, with its six stages and 12 messages. Extra conversations or edits in the old demo are removed. This matches a fresh installation.
+
+The complete reset displays counts, offers **Export workspace (JSON)**, and requires typing `RESET`. The backend compares the reviewed snapshot against current data; changed data requires **Refresh summary** and a new confirmation. The export contains database workspace records and uploaded attachment bytes encoded as base64, including Trash and legacy records. It excludes server configuration and live folder files; user content or command output may itself contain sensitive data. This is an archival export, not an automatic restore/import facility. Finish the download before deleting data you need to retain.
+
+Both actions are blocked in the current interface during responses, uploads, preparation, model-list requests and native operations, and consult backend activity before proceeding. Complete reset additionally rejects active API mutations, pending responses and native-operation leases on the shared service. Approval/command leases are renewed every 15 seconds and expire after three minutes if the client disappears. The native bridge rechecks the lease after the permission dialog before making changes; commands retain their 120-second deadline. Reset is intended for a single local service instance; the activity registry is process-local and is not a distributed coordinator. Close older desktop instances and restart with `./scripts/desktop.sh` before using this increment.
+
+The backend is shared by browser and desktop: a workspace reset affects both. Other clients retain their own preferences and local folder-link stores; reload them afterward. Deleted project identities cannot acquire new operation leases. Reset does not uninstall Ollama models, alter local project files, remove `.env` or revoke credentials at a provider. This local MVP has no multi-user administration/authentication boundary; do not expose its service as a shared public server.
+
+
+## OpenAI-compatible API connections
+
+For a service implementing the [OpenAI Chat Completions format](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), select **OpenAI-compatible** in **Model settings**:
+
+1. Enter the provider's **API base URL**, including its path/version prefix (for example `https://provider.example/v1`). Do not include `/chat/completions`, `/models`, credentials in the URL, query parameters or fragments. The tool appends the endpoint paths without adding another `/v1`.
+2. Enter the provider's API key, if required. Arbitrary key formats are accepted; there is no OpenAI-prefix check. A service requiring no authentication can use the URL alone. If entering a key alone, the URL defaults to `https://api.openai.com/v1`; a third-party key normally needs that provider's URL too.
+3. Click **Save connection**. Saving contacts only the local backend. It does not run inference or test the remote provider. The connection is shared by all windows of this installation.
+4. Click **Load available models**, or **Enter model ID manually** if the provider does not implement `GET /models`. All returned IDs are shown without an OpenAI-name filter. Choose a model supporting chat and the required context/output formats.
+5. Authorise this connection to process the project's shared material, then send your request.
+
+**Advanced compatibility options** defaults to `max_tokens=4096` and no `response_format`. Choose `max_completion_tokens`, change the output limit (512–16000), or omit the token parameter if required by your service. Enable JSON mode only if it accepts `response_format: {"type":"json_object"}`. The system prompt and output validation always require EthicSpark's JSON schema, even without JSON mode. Text-only requests use ordinary string content; images use OpenAI image URL content blocks and require vision support. No compatibility retry silently resubmits or switches providers. OpenAI-compatible does not mean every model/service supports the catalogue context, images or structured replies.
+
+Official **OpenAI** remains a separate provider using the existing `OPENAI_API_KEY`, `OPENAI_BASE_URL`, model filtering and request format. Existing OpenAI, Claude and Ollama configurations continue to work. The compatible connection also works with official OpenAI when supplied its URL and a valid key, using whatever token options that model supports. APIs requiring different authentication headers, arbitrary query parameters or non-Chat-Completions schemas are outside this adapter.
+
+Keys typed into the settings form are sent to the local backend on Save and cleared from the form afterward. They are never placed in browser local storage or returned by the settings API. The backend stores the saved connection in `provider-config/openai-compatible.json`, with a private directory and owner-only file permissions in the Docker deployment. A named Docker volume preserves it across rebuilds. This is server configuration, excluded from Git, Docker build context, workspace exports and workspace reset. It is not an encrypted credential vault. Protect server access/backups. **Remove saved API key** clears just the key; **Forget connection** disables the saved custom connection. These actions do not revoke credentials at the provider.
+
+An unchanged URL with a blank key field preserves the saved key. Changing the URL clears the old key unless a replacement is supplied, preventing accidental credential forwarding. Every save creates a new connection identity and requires fresh per-project processing permission. Stale requests are rejected before transmission; reopen settings to refresh the identity. An in-flight request retains its original endpoint and key snapshot. Keys are not included in model request bodies, provenance or provider error details. The request-provenance hash includes the custom endpoint and connection identity.
+
+Optional `.env` defaults are `OPENAI_COMPATIBLE_BASE_URL`, `OPENAI_COMPATIBLE_API_KEY` and `OPENAI_COMPATIBLE_MODELS` (comma-separated model IDs). A saved UI configuration takes precedence, including an explicitly forgotten/disabled connection. `OPENAI_COMPATIBLE_CONFIG_PATH` selects the private file for non-Docker execution; Docker supplies its volume path. GUI saves need no restart; changed environment defaults require restarting the application. HTTP is accepted for local/self-hosted services and displayed with a transport warning. Use HTTPS for remote providers. In Docker, `localhost` means the application container: use `host.docker.internal` for a service on the host. The application remains a local single-user MVP, without multi-user administration or a public configuration API boundary.

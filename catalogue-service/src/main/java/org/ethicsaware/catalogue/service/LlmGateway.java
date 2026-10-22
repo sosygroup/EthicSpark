@@ -24,6 +24,23 @@ public class LlmGateway {
     public record PrepareRequest(String model,Integer keepAliveMinutes) {
         public PrepareRequest(String model) {this(model,null);}
     }
+    public record ThinkingRequest(String model) {}
+    public record ThinkingOptions(String model,List<Object> values,Object defaultValue,Object automaticValue,boolean legacyBoolean) {}
+    public ThinkingOptions thinkingOptions(ThinkingRequest request) {
+        if(request==null||request.model()==null||request.model().isBlank()||request.model().length()>200)throw failure(HttpStatus.BAD_REQUEST,"Choose an Ollama model.");
+        String model=request.model().strip();JsonNode info=exchange(nativeOllama(),"/api/show",json.writeValueAsString(Map.of("model",model)),Duration.ofSeconds(15));
+        List<Object> values=new ArrayList<>();var advertised=info.path("thinking").path("values");
+        boolean legacy=!advertised.isArray() && hasThinkingCapability(info);
+        if(advertised.isArray())for(JsonNode value:advertised) {if(value.isBoolean()) values.add(value.asBoolean());else if(value.isString()&&!value.asText().isBlank()&&value.asText().length()<=100)values.add(value.asText());}
+        else if(legacy)values.addAll(List.of(true,false));
+        var defaults=info.path("thinking").path("default");Object defaultValue=defaults.isBoolean()?defaults.asBoolean():defaults.isString()?defaults.asText():null;
+        Map<String,Object> body=new LinkedHashMap<>();Object preferred=effortValue(env.getProperty("OLLAMA_REASONING_EFFORT","low").strip());
+        if(!preferred.equals("")) configureThinking(body,info,preferred);
+        return new ThinkingOptions(model,values.stream().distinct().toList(),defaultValue,body.get("think"),legacy);
+    }
+    public static void validateThinkingPreference(Object value) {
+        if(value!=null && !(value instanceof Boolean) && !(value instanceof String text && text.length()<=100))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Ollama reasoning must be a supported level, a boolean or an empty string for model default.");
+    }
     public record UnloadRequest(String model) {}
     public record Unloaded(String model,boolean unloaded) {}
     private final java.util.concurrent.ConcurrentHashMap<String,java.util.concurrent.locks.ReentrantReadWriteLock> modelLocks=new java.util.concurrent.ConcurrentHashMap<>();
@@ -71,12 +88,16 @@ public class LlmGateway {
             var result=new Preparation(model,minutes,seconds(System.nanoTime()-start),duration(response,"load_duration"));pending.complete(result);return result;
         }catch(RuntimeException e){pending.completeExceptionally(e);throw e;}finally{preparations.remove(key,pending);lock.unlock();}
     }
+    private final CompatibleProviderConfig compatible;
     private final Environment env;
     private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final JsonMapper json=JsonMapper.builder().build();
-    public LlmGateway(Environment env) { this.env=env; }
+    public LlmGateway(Environment env) {this(env,new CompatibleProviderConfig(env));}
+    @org.springframework.beans.factory.annotation.Autowired
+    public LlmGateway(Environment env,CompatibleProviderConfig compatible) {this.env=env;this.compatible=compatible;}
     Settings settings(String id) {
         return switch(id) {
+            case "compatible" -> {var c=compatible.current();yield new Settings(id,"OpenAI-compatible",c.baseUrl(),c.apiKey(),true);}
             case "openai" -> new Settings(id,"OpenAI",env.getProperty("OPENAI_BASE_URL","https://api.openai.com/v1"),env.getProperty("OPENAI_API_KEY",""),true);
             case "anthropic" -> new Settings(id,"Anthropic Claude",env.getProperty("ANTHROPIC_BASE_URL","https://api.anthropic.com/v1"),env.getProperty("ANTHROPIC_API_KEY",""),true);
             case "ollama" -> new Settings(id,"Ollama",env.getProperty("OLLAMA_BASE_URL","http://localhost:11434/v1"),env.getProperty("OLLAMA_API_KEY",""),env.getProperty("OLLAMA_EXTERNAL",Boolean.class,false));
@@ -84,11 +105,16 @@ public class LlmGateway {
         };
     }
     public List<Provider> providers() {
-        return List.of("openai","anthropic","ollama").stream().map(this::settings).map(s->new Provider(s.id(),s.name(),!s.external()||!s.key().isBlank(),s.external(),s.id().equals("ollama")?"Start Ollama and install a model; use a vision model for diagrams.":"Configure "+s.id().toUpperCase(Locale.ROOT)+"_API_KEY on the server, then restart the application.")).toList();
+        var result=new ArrayList<Provider>();
+        for(String id:List.of("openai","compatible","anthropic","ollama")) {
+            var s=settings(id);boolean custom=id.equals("compatible");
+            result.add(new Provider(s.id(),s.name(),custom?!s.url().isBlank():!s.external()||!s.key().isBlank(),s.external(),custom?"Enter an API base URL and an optional provider API key in Model settings.":id.equals("ollama")?"Start Ollama and install a model; use a vision model for diagrams.":"Configure "+id.toUpperCase(Locale.ROOT)+"_API_KEY on the server, then restart the application.",custom?compatible.current().connectionId():""));
+        }
+        return result;
     }
     public List<String> models(String provider) {
         Settings s=settings(provider); require(s);
-        String configured=env.getProperty(provider.toUpperCase(Locale.ROOT)+"_MODELS","");
+        String configured=env.getProperty((provider.equals("compatible")?"OPENAI_COMPATIBLE":provider.toUpperCase(Locale.ROOT))+"_MODELS","");
         if(!configured.isBlank()) return Arrays.stream(configured.split(",")).map(String::strip).filter(v->!v.isBlank()).distinct().toList();
         JsonNode data=exchange(s,"/models"+(provider.equals("anthropic")?"?limit=1000":""),null,Duration.ofSeconds(15));
         List<String> names=new ArrayList<>();
@@ -102,11 +128,23 @@ public class LlmGateway {
         return generate(provider,model,system,context,images,null);
     }
     public Result generate(String provider,String model,String system,String context,List<Map<String,String>> images,Integer retention) {
-        Settings s=settings(provider); require(s);
+        return generate(provider,model,system,context,images,retention,null);
+    }
+    public Result generate(String provider,String model,String system,String context,List<Map<String,String>> images,Integer retention,Object thinkingPreference) {
+        return generate(provider,model,system,context,images,retention,thinkingPreference,null);
+    }
+    public void validateConnection(String provider,String connectionId) {
+        if("compatible".equals(provider)&&!compatible.current().connectionId().equals(connectionId))throw failure(HttpStatus.CONFLICT,"The OpenAI-compatible connection changed. Reopen Model settings and authorise the current connection before sending project material.");
+    }
+    public Result generate(String provider,String model,String system,String context,List<Map<String,String>> images,Integer retention,Object thinkingPreference,String connectionId) {
+        validateThinkingPreference(thinkingPreference);
+        var custom=provider.equals("compatible")?compatible.current():null;
+        if(custom!=null&&connectionId!=null&&!custom.connectionId().equals(connectionId))throw failure(HttpStatus.CONFLICT,"The provider connection changed. Reload Model settings and authorise it again.");
+        Settings s=custom==null?settings(provider):new Settings("compatible","OpenAI-compatible",custom.baseUrl(),custom.apiKey(),true); require(s);
         if(model==null || model.isBlank() || model.length()>200) throw failure(HttpStatus.BAD_REQUEST,"Choose a model.");
         if(provider.equals("ollama")) {
             var lock=modelLock(model.strip()).readLock();lock.lock();
-            try{return generateOllama(model,system,context,images,keepAliveMinutes(retention));}finally{lock.unlock();}
+            try{return generateOllama(model,system,context,images,keepAliveMinutes(retention),thinkingPreference);}finally{lock.unlock();}
         }
         List<Object> content=new ArrayList<>(); content.add(Map.of("type","text","text",context));
         for(var image:images) {
@@ -117,9 +155,10 @@ public class LlmGateway {
         if(provider.equals("anthropic")) {
             body.put("system",system);body.put("max_tokens",16000);body.put("messages",List.of(Map.of("role","user","content",content)));
         } else {
-            body.put("messages",List.of(Map.of("role","system","content",system),Map.of("role","user","content",content)));
-            body.put("response_format",Map.of("type","json_object"));
-            body.put("max_completion_tokens",16000);
+            body.put("messages",List.of(Map.of("role","system","content",system),Map.of("role","user","content",custom!=null&&images.isEmpty()?context:content)));
+            if(custom==null||custom.jsonMode())body.put("response_format",Map.of("type","json_object"));
+            if(custom==null)body.put("max_completion_tokens",16000);
+            else if(!custom.tokenParameter().equals("none"))body.put(custom.tokenParameter(),custom.maxTokens());
         }
         String payload=json.writeValueAsString(body);
         long started=System.nanoTime();
@@ -134,27 +173,18 @@ public class LlmGateway {
             result=choice.path("message").path("content").asText();
         }
         if(result.isBlank()) throw failure(HttpStatus.BAD_GATEWAY,"The provider returned no proposal.");
-        return new Result(result,payload,new Metrics(seconds(System.nanoTime()-started),null,null,null,count(response.path("usage"),provider.equals("anthropic")?"input_tokens":"prompt_tokens"),count(response.path("usage"),provider.equals("anthropic")?"output_tokens":"completion_tokens"),null,null));
+        return new Result(result,custom==null?payload:json.writeValueAsString(Map.of("endpoint",s.url(),"connectionId",custom.connectionId(),"body",body)),new Metrics(seconds(System.nanoTime()-started),null,null,null,count(response.path("usage"),provider.equals("anthropic")?"input_tokens":"prompt_tokens"),count(response.path("usage"),provider.equals("anthropic")?"output_tokens":"completion_tokens"),null,null));
     }
-    private Result generateOllama(String model,String system,String context,List<Map<String,String>> images,int minutes) {
+    private Result generateOllama(String model,String system,String context,List<Map<String,String>> images,int minutes,Object thinkingPreference) {
         Map<String,Object> user=new LinkedHashMap<>();user.put("role","user");user.put("content",context);
         if(!images.isEmpty())user.put("images",images.stream().map(i->i.get("data")).toList());
         Map<String,Object> body=new LinkedHashMap<>();body.put("model",model);body.put("messages",List.of(Map.of("role","system","content",system),user));
         body.put("stream",false);body.put("format","json");body.put("keep_alive",minutes*60);
         body.put("options",Map.of("num_predict",integerSetting("OLLAMA_MAX_OUTPUT_TOKENS",8192,512,16000)));
-        String effort=env.getProperty("OLLAMA_REASONING_EFFORT","low").strip();
-        if(!effort.isEmpty()) {
+        Object effort=thinkingPreference==null?effortValue(env.getProperty("OLLAMA_REASONING_EFFORT","low").strip()):thinkingPreference instanceof String text?text.strip():thinkingPreference;
+        if(!effort.equals("")) {
             JsonNode info=exchange(nativeOllama(),"/api/show",json.writeValueAsString(Map.of("model",model)),Duration.ofSeconds(15));
-            boolean thinking=false;for(JsonNode c:info.path("capabilities"))if(c.asText().equals("thinking"))thinking=true;
-            if(thinking) {
-                if(effort.equals("none")||effort.equals("false"))body.put("think",false);
-                else if(effort.equals("true"))body.put("think",true);
-                else if(info.path("thinking").path("values").isArray()) {
-                    boolean supported=false;for(JsonNode value:info.path("thinking").path("values"))if(value.isString()&&value.asText().equals(effort))supported=true;
-                    if(!supported)throw failure(HttpStatus.BAD_REQUEST,"This model does not support the configured OLLAMA_REASONING_EFFORT. Choose an advertised level or leave the setting empty for its default.");
-                    body.put("think",effort);
-                }else body.put("think",true);
-            }
+            configureThinking(body,info,effort);
         }
         String payload=json.writeValueAsString(body);long started=System.nanoTime();
         JsonNode response=exchange(nativeOllama(),"/api/chat",payload,Duration.ofSeconds(integerSetting("OLLAMA_TIMEOUT_SECONDS",600,1,1800)));
@@ -163,11 +193,39 @@ public class LlmGateway {
         Double generation=duration(response,"eval_duration");Long output=count(response,"eval_count");
         return new Result(text,payload,new Metrics(seconds(System.nanoTime()-started),duration(response,"load_duration"),duration(response,"prompt_eval_duration"),generation,count(response,"prompt_eval_count"),output,generation!=null&&generation>0&&output!=null?output/generation:null,null));
     }
+    /** Treat effort as a preference: unsupported controls are omitted, keeping the selected model's default. */
+    private static Object effortValue(String effort) {return effort.equals("none")||effort.equals("false")?Boolean.FALSE:effort.equals("true")?Boolean.TRUE:effort;}
+    private static boolean hasThinkingCapability(JsonNode info) {for(JsonNode value:info.path("capabilities"))if(value.asText().equals("thinking"))return true;return false;}
+    private static void configureThinking(Map<String,Object> body,JsonNode info,Object requested) {
+        JsonNode values=info.path("thinking").path("values");
+        if(values.isArray()) {
+            for(JsonNode value:values) {
+                if(requested instanceof Boolean bool && value.isBoolean() && value.asBoolean()==bool || requested instanceof String level && value.isString() && value.asText().equals(level)) {
+                    body.put("think",requested);return;
+                }
+            }
+            return; // Includes unsupported levels, booleans and models advertising no usable control.
+        }
+        if(hasThinkingCapability(info)) body.put("think",!Boolean.FALSE.equals(requested)); // Older boolean-only metadata.
+    }
+    private ResponseStatusException providerFailure(Settings provider,int status) {
+        String prefix=provider.name()+" returned HTTP "+status+". ";
+        String credential=provider.id().equals("compatible")?"provider API key in Model settings":provider.id().toUpperCase(Locale.ROOT)+"_API_KEY";
+        String detail=switch(status) {
+            case 401 -> "Authentication was rejected. Check the active "+credential+" on the backend, its organization/project and any access-policy or IP restrictions. "+(provider.id().equals("compatible")?"Save corrected connection settings; no restart is required.":"After changing credentials, restart the application service.")+" Do not share the key in chat.";
+            case 403 -> "Access was denied. Check this account's permissions, model access and applicable access policies.";
+            case 429 -> "A request-rate, credit or usage limit was reached. Check the provider's limits and billing before retrying; repeated retries do not resolve exhausted credits.";
+            case 400,422 -> "The provider rejected the request format or options. Check input and model compatibility.";
+            case 404 -> "The endpoint or requested model was not found. Check the configured endpoint and exact model ID.";
+            default -> status>=500?"The provider could not process the request. It may be temporarily unavailable; retry later and check its service status.":"The provider rejected the request. Check the server configuration and provider access.";
+        };
+        return failure(HttpStatus.BAD_GATEWAY,prefix+detail);
+    }
     private int integerSetting(String name,int fallback,int min,int max) {
         try {int value=Integer.parseInt(env.getProperty(name,Integer.toString(fallback)));if(value>=min&&value<=max)return value;}catch(NumberFormatException ignored) {}
         throw failure(HttpStatus.SERVICE_UNAVAILABLE,"Invalid server setting "+name+"; use a value from "+min+" to "+max+".");
     }
-    private void require(Settings s) { if(s.external()&&s.key().isBlank()) throw failure(HttpStatus.SERVICE_UNAVAILABLE,"Configure the provider API key on the server before running analysis."); }
+    private void require(Settings s) { if(s.id().equals("compatible")){if(s.url().isBlank())throw failure(HttpStatus.SERVICE_UNAVAILABLE,"Configure the OpenAI-compatible API base URL in Model settings first.");return;} if(s.external()&&s.key().isBlank()) throw failure(HttpStatus.SERVICE_UNAVAILABLE,"Configure the provider API key on the server before running analysis."); }
     private JsonNode exchange(Settings s,String path,String body,Duration timeout) {
         try {
             var b=HttpRequest.newBuilder(URI.create(s.url().replaceAll("/+$","")+path)).timeout(timeout).header("Content-Type","application/json");
@@ -175,7 +233,7 @@ public class LlmGateway {
             else if(!s.key().isBlank()) b.header("Authorization","Bearer "+s.key());
             var response=http.send(body==null?b.GET().build():b.POST(HttpRequest.BodyPublishers.ofString(body)).build(),HttpResponse.BodyHandlers.ofInputStream());
             try(var stream=response.body()) {
-                if(response.statusCode()<200 || response.statusCode()>=300) throw failure(HttpStatus.BAD_GATEWAY,s.name()+" returned HTTP "+response.statusCode()+". Check server configuration, model access, input compatibility and provider quota.");
+                if(response.statusCode()<200 || response.statusCode()>=300) throw providerFailure(s,response.statusCode());
                 byte[] bytes=stream.readNBytes(2*1024*1024+1);
                 if(bytes.length>2*1024*1024) throw failure(HttpStatus.BAD_GATEWAY,"Provider response exceeded the size limit.");
                 try {return json.readTree(new String(bytes,StandardCharsets.UTF_8));}

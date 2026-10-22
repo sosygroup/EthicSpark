@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp verify
 
 FROM eclipse-temurin:25-jre@sha256:fd4b1c02c64eef378212e23656fc0b0caa41a357876fa0b60e51ceda94a3db64 AS runtime
 WORKDIR /app
-RUN mkdir -p /app/reports && chown -R 10001:10001 /app
+RUN mkdir -p /app/reports /app/provider-config && chmod 700 /app/provider-config && chown -R 10001:10001 /app
 COPY --from=build /workspace/catalogue-service/target/catalogue-service-0.1.0-SNAPSHOT.jar /app/app.jar
 COPY --from=build /workspace/catalogue-service/target/classes/org/ethicsaware/catalogue/service/HealthCheck.class /app/health/org/ethicsaware/catalogue/service/HealthCheck.class
 COPY --from=build /workspace/data/catalogue-public.xlsx /app/input/catalogue.xlsx

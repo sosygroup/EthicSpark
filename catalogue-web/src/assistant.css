@@ -1298,3 +1298,63 @@
 .diagram-result > button:hover {
   background: #e9f1ec;
 }
+.thinking-settings {
+  margin: 24px 0;
+}
+.thinking-settings > small {
+  display: block;
+  margin: 8px 0;
+  color: #53665c;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.thinking-settings > p {
+  margin: 8px 0 16px;
+  color: #66726b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.reset-content p {
+  line-height: 1.55;
+}
+.reset-option {
+  border: 1px solid var(--line, #ddd);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+}
+.reset-option h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.reset-content .MuiAlert-root {
+  margin: 12px 0;
+}
+
+.compatible-settings {
+  border: 1px solid var(--line, #ddd);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  display: grid;
+  gap: 14px;
+}
+.compatible-settings h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.compatible-settings p {
+  margin: 0;
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+.compatibility-options summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.compatibility-options > div {
+  display: grid;
+  gap: 18px;
+  padding-top: 18px;
+}

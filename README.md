@@ -8,14 +8,24 @@ The catalogue contains **24 clusters, 144 actions and 184 references**, using Kn
 
 You can also **Explore catalogue** without configuring a model. Browse source clusters, actions, ethics labels, phases, roles and all references in the browser or desktop app. The local backend must be running, but no API key or Ollama is required. Open the sidebar’s **Explore catalogue** button or visit [the standalone explorer](http://localhost:8082/?catalogue=1).
 
-## Latest development update — 19 October 2026
+## Latest development update — 22 October 2026
+
+- **Model settings → Provider → OpenAI-compatible** connects to official OpenAI or a third-party Chat Completions service using its own API base URL and optional API key. Save the connection, load or enter a model ID, then authorise project processing. Advanced options cover output token parameters and optional JSON mode. Official OpenAI configuration remains separate and unchanged. See [connection setup](docs/CONVERSATIONAL_WORKSPACE.md#openai-compatible-api-connections).
+
+- **Model settings → Reset…** offers **Reset settings** for this browser/desktop app, and **Reset workspace** for the shared backend. Workspace reset restores the original offline demo after clearing user data, Trash and legacy workflow history, requires an unchanged reviewed summary plus typing `RESET`, and offers an archival JSON export first. The catalogue, host project files, Ollama installations and server credentials are kept. Native operations and running requests block reset; reopen the desktop app to load the updated bridge.
+
+- **Model settings → Ollama → Reasoning level** offers **Automatic (compatible)**, **Model default** and the controls advertised by the selected model. Choices are remembered separately per model in each browser/desktop app. Unsupported preferences fall back to the model default without switching models.
+- Automatic checks model capabilities; it does not benchmark CPU/RAM or infer the Ollama host's resources from Docker. Lower reasoning can reduce processing time where supported, but does not guarantee lower loading memory.
+- Model-service notifications distinguish authentication (HTTP 401), access restrictions (403), request/usage limits (429) and incompatible request options. Credentials remain server-side.
+
+## Previous development update — 19 October 2026
 
 - The **Notifications** center in the upper-right corner collects runtime warnings, errors and information without opening a banner or interrupting the conversation. Unread indicators use red for errors, amber for warnings and blue for information. Open the bell (or press Alt+N) for explanations, suggested actions and optional technical details. Repeated reports are grouped.
 
 - Updated application files are detected on startup and when returning to the window. An **Application updated** notification offers an explicit **Reload app** action, preserving unsent message text. Missing components caused by an unavailable service have a separate message. No automatic reload interrupts work.
 
 - **New project (+) → Load demo project** opens an offline, authored conversation from Requirements through Design, Implementation, Testing, Deployment and Operations. It includes diagrams, an illustrative chart and downloadable artifacts; no model is needed.
-- Reopening the demo reuses it; if moved to Trash, it is restored without replacing later conversations. Fresh installations remain empty until you explicitly load it.
+- Reopening the demo reuses it; if moved to Trash, it is restored without replacing later conversations. Fresh installations include the original offline demo. A full workspace reset restores a fresh copy; manually loading the demo during normal use preserves its later conversations.
 - Visual artifacts support Mermaid source, SVG figures and PNG/JPEG/GIF/WebP data URLs. Click a preview to enlarge it, or download the original artifact. Diagrams also offer SVG export.
 - Mermaid input is validated before rendering. Missing spaces in flowchart headers such as `graphTB` are corrected for preview only; other invalid diagrams have a discreet link to an explanation in Notifications, with the original source retained. Temporary rendering elements are always removed.
 
@@ -25,7 +35,7 @@ You can also **Explore catalogue** without configuring a model. Browse source cl
 - **Load available models** opens the complete provider model list; the current selection does not filter it. Manual model ID entry remains available.
 - **Try a fictional example** fills a safe sample prompt without sending it. See [the bundled example](examples/fictional-support-portal.md).
 
-A fresh database contains no saved projects or author test conversations. Git does not include local database volumes, attachments, credentials or linked project folders. Updating an existing installation preserves its own database.
+A fresh database contains only the bundled fictional demo, with no author test conversations. Git does not include local database volumes, attachments, credentials or linked project folders. Updating an existing installation preserves its own database.
 
 ## Previous development update — 16 October 2026
 
@@ -146,7 +156,7 @@ Create `tmp` first if it does not exist. On invalid input, startup fails after w
 ./scripts/test.sh
 ```
 
-This builds with Java 25, installs Node for the Maven-integrated frontend build, checks TypeScript and bundles React. The current Java suite has **33 tests** (13 importer, 2 gateway unit and 18 PostgreSQL integration cases). The separate desktop suite has **8 native-agent tests**, run by CI and described in [validation](docs/VALIDATION.md). It runs importer regression tests and PostgreSQL integration tests covering catalogue integrity, manual review, stale edits, approval idempotency, immutable plans, profile reassessment and HTML/JSON export, including HTML escaping. It does not connect to the normal development database.
+This builds with Java 25, installs Node for the Maven-integrated frontend build, checks TypeScript and bundles React. The current Java suite has **48 tests** (13 importer, 9 gateway, 1 provider-configuration unit test and 25 PostgreSQL integration cases). The production frontend build runs **13 helper tests**. The separate desktop suite has **13 native-agent tests**, run by CI and described in [validation](docs/VALIDATION.md). It runs importer regression tests and PostgreSQL integration tests covering catalogue integrity, manual review, stale edits, approval idempotency, immutable plans, profile reassessment and HTML/JSON export, including HTML escaping. It does not connect to the normal development database.
 
 With a local JDK 25, use the Maven Wrapper:
 
