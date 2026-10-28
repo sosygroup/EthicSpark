@@ -1,5 +1,12 @@
 # Development changelog
 
+## 28 October 2026 — Default demo gallery
+
+- Replace all “Previous development update” sections in the main README with a six-stage screenshot walkthrough of the bundled fictional demo.
+- Show Requirements, Design, Implementation, Testing, Deployment and Operations, including enlarged diagram and chart previews.
+- Clarify that the demo works offline and its authored content is illustrative, not executed test evidence or expert validation.
+- Verification: visually reviewed all six browser screenshots and checked the local image links and whitespace. Application code is unchanged.
+
 ## 22 October 2026 — OpenAI-compatible API connections
 
 - Add a separate provider with editable API base URL and optional arbitrary-format key, supporting official OpenAI and third-party Chat Completions services.

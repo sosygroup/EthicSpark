@@ -18,39 +18,49 @@ You can also **Explore catalogue** without configuring a model. Browse source cl
 - Automatic checks model capabilities; it does not benchmark CPU/RAM or infer the Ollama host's resources from Docker. Lower reasoning can reduce processing time where supported, but does not guarantee lower loading memory.
 - Model-service notifications distinguish authentication (HTTP 401), access restrictions (403), request/usage limits (429) and incompatible request options. Credentials remain server-side.
 
-## Previous development update — 19 October 2026
+## Explore the default demo
 
-- The **Notifications** center in the upper-right corner collects runtime warnings, errors and information without opening a banner or interrupting the conversation. Unread indicators use red for errors, amber for warnings and blue for information. Open the bell (or press Alt+N) for explanations, suggested actions and optional technical details. Repeated reports are grouped.
+A new installation includes **Demo — fictional support portal**, a six-stage conversation from Requirements to Operations. It works without an API key or Ollama. If removed, restore it with **Projects (+) → Load demo project**. A complete workspace reset restores the original demonstration.
 
-- Updated application files are detected on startup and when returning to the window. An **Application updated** notification offers an explicit **Reload app** action, preserving unsent message text. Missing components caused by an unavailable service have a separate message. No automatic reload interrupts work.
+The screenshots below show the bundled, authored example in the browser workspace. They are illustrative guidance—not live model responses, executed tests, implemented safeguards or expert validation. The desktop app uses the same conversational interface and adds permission-controlled access to local folders, file edits and commands.
 
-- **New project (+) → Load demo project** opens an offline, authored conversation from Requirements through Design, Implementation, Testing, Deployment and Operations. It includes diagrams, an illustrative chart and downloadable artifacts; no model is needed.
-- Reopening the demo reuses it; if moved to Trash, it is restored without replacing later conversations. Fresh installations include the original offline demo. A full workspace reset restores a fresh copy; manually loading the demo during normal use preserves its later conversations.
-- Visual artifacts support Mermaid source, SVG figures and PNG/JPEG/GIF/WebP data URLs. Click a preview to enlarge it, or download the original artifact. Diagrams also offer SVG export.
-- Mermaid input is validated before rendering. Missing spaces in flowchart headers such as `graphTB` are corrected for preview only; other invalid diagrams have a discreet link to an explanation in Notifications, with the original source retained. Temporary rendering elements are always removed.
+### Requirements
 
-## Previous development update — 17 October 2026
+Agree the scope, access rules, data minimization, retention and accessibility criteria before implementation.
 
-- One catalogue is presented without a version selector. Internal import identifiers remain available for provenance.
-- **Load available models** opens the complete provider model list; the current selection does not filter it. Manual model ID entry remains available.
-- **Try a fictional example** fills a safe sample prompt without sending it. See [the bundled example](examples/fictional-support-portal.md).
+![Requirements: the fictional support portal's acceptance criteria and catalogue context](docs/screenshots/demo-requirements.jpg)
 
-A fresh database contains only the bundled fictional demo, with no author test conversations. Git does not include local database volumes, attachments, credentials or linked project folders. Updating an existing installation preserves its own database.
+### Design
 
-## Previous development update — 16 October 2026
+Inspect an enlarged architecture diagram showing the web interface, Java API, database and redacted audit events.
 
-- **Model loading feedback:** an animated gauge in Model settings shows preparation activity and elapsed time, without estimating a loading percentage.
-- **Ollama memory controls:** choose 5, 30 or 60 minutes, or a custom duration per model; use **Unload model now** to release it without deleting installed files.
-- **Ollama preparation and diagnostics:** optional automatic model preloading, configurable 30-minute retention and persisted response timing for loading, prompt processing and generation. Inspect **Model settings** and each answer’s **Response timing**. See [the performance guide](docs/CONVERSATIONAL_WORKSPACE.md#ollama-preparation-and-performance-diagnostics).
-- **Explore catalogue** independently of AI: search clusters/actions, filter by category, SDLC phase and ethics label, inspect all references and import notes, from the single source catalogue. Available from the workspace or directly at `/?catalogue=1`; no API key, Ollama or project is required.
-- Project **⋯** menu: Rename project, Open folder in the desktop system file manager, and confirmed Delete project to a restorable Trash. Local project files are not deleted.
-- Browser-mode banner explains native-only features and includes the copyable `./scripts/desktop.sh` command. Contextual explanations remain for complex operations; redundant information icons on familiar buttons have been removed.
-- Local Ollama reliability: compact catalogue context retains all 144 source action texts, evidence, phases and roles; a stable catalogue prefix permits prompt-cache reuse. Configurable local timeout/output/reasoning settings and first-response retry support replace the previous three-minute failure.
-- Real local smoke check with `qwen3.8:27b`: a fictional support-portal request completed in 233.6 seconds with validated catalogue citations. This is compatibility evidence for one example, not an expert evaluation or a latency guarantee.
+![Design: architecture and data flow for the fictional support portal](docs/screenshots/demo-design.jpg)
 
-See the [changelog](CHANGELOG.md), [usage guide](docs/CONVERSATIONAL_WORKSPACE.md) and [validation evidence](docs/VALIDATION.md).
+### Implementation
 
-The desktop launcher refreshes interface cache on each fresh process and prints the project path, backend address and loaded UI entry file. Existing projects and model preferences are retained. It follows the Compose application port automatically; an explicit `ETHICSPARK_URL` overrides it.
+Review an illustrative Java authorization check, its limitations and a downloadable implementation checklist.
+
+![Implementation: illustrative Java access-control sketch](docs/screenshots/demo-implementation.jpg)
+
+### Testing
+
+Explore planned privacy, authorization and accessibility checks, with an illustrative chart and downloadable test-plan data.
+
+![Testing: planned checks and an illustrative test-plan chart, not executed results](docs/screenshots/demo-testing.jpg)
+
+### Deployment
+
+Work through a release-review checklist covering security, privacy, accessibility, operations and accountability.
+
+![Deployment: release-review checklist with catalogue context](docs/screenshots/demo-deployment.jpg)
+
+### Operations
+
+Follow the response to a fictional deletion report: investigate, contain unintended access, correct the cause and communicate the verified outcome.
+
+![Operations: enlarged incident-response sequence diagram](docs/screenshots/demo-operations.jpg)
+
+See the [usage guide](docs/CONVERSATIONAL_WORKSPACE.md), [changelog](CHANGELOG.md) and [validation evidence](docs/VALIDATION.md) for details and development history.
 
 ## Start the desktop app
 
@@ -60,7 +70,7 @@ Prerequisites: Docker Desktop (or Docker Engine with Compose v2), curl, and a gr
 ./scripts/desktop.sh
 ```
 
-For catalogue browsing, choose **Explore catalogue** immediately. For an AI conversation, open **Model settings** to choose OpenAI, Anthropic Claude or Ollama. Configure cloud API keys only in your ignored local `.env`, or start Ollama and install a model. Authorise the selected provider to process the current project's shared context. Model choice is remembered. You can then start with a single prompt; a folder and attachments are optional.
+For catalogue browsing, choose **Explore catalogue** immediately. For an AI conversation, open **Model settings** to choose OpenAI, OpenAI-compatible, Anthropic Claude or Ollama. Configure OpenAI/Claude keys in your ignored local `.env`, save a compatible API connection in Model settings, or start Ollama and install a model. Authorise the selected provider to process the current project's shared context. Model choice is remembered. You can then start with a single prompt; a folder and attachments are optional.
 
 See [conversational workspace](docs/CONVERSATIONAL_WORKSPACE.md) for the complete journey, folder freshness, action previews, permissions and limitations. This is a source-distributed desktop MVP, not a signed self-contained installer. Host project commands still need the project's usual tools installed.
 
