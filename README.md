@@ -1,4 +1,4 @@
-# Ethics-Aware Software Engineering Catalogue
+# EthicSpark
 
 EthicSpark is a standalone conversational workspace for software development, with an ethics-aware catalogue in context. Start from a prompt, documents or a live local project folder. The assistant helps with general engineering tasks and introduces ethical considerations when relevant; no profile questionnaire or upfront cluster choices are required.
 

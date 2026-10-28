@@ -1,5 +1,10 @@
 # Development changelog
 
+## 28 October 2026 — Repository renamed to EthicSpark
+
+- The public repository is now [sosygroup/EthicSpark](https://github.com/sosygroup/EthicSpark). Existing links to the previous repository address redirect to the new location.
+- Align the main README title with the application name. Local checkout folders and application identifiers are unchanged.
+
 ## 28 October 2026 — Default demo gallery
 
 - Replace all “Previous development update” sections in the main README with a six-stage screenshot walkthrough of the bundled fictional demo.
